@@ -1,0 +1,86 @@
+# =============================================================================
+# CATÁLOGO DE DATASETS - PROYECTO MACHINE LEARNING
+# =============================================================================
+# Este archivo define todos los datasets que Kedro puede cargar y usar
+# en el proyecto. Cada entrada especifica cómo cargar un archivo de datos.
+
+# =============================================================================
+# DATASETS PRINCIPALES - DATOS HISTÓRICOS DE NACIMIENTOS Y DEFUNCIONES
+# =============================================================================
+
+# Dataset principal con datos históricos de nacimientos y defunciones por año
+# Contiene información desde 1974 hasta 2023
+datos_historicos_nacimientos_defunciones:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/setdedatos.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset con datos filtrados de defunciones (2014-2023)
+# Contiene información detallada de cada defunción con ubicación y causa
+datos_filtrados_defunciones:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/datos_filtrados_2014_2023.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# =============================================================================
+# DATASETS POR CATEGORÍAS - ANÁLISIS DESAGREGADO
+# =============================================================================
+
+# Dataset de nacimientos y defunciones desglosado por sexo
+nacimientos_defunciones_por_sexo:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/dataset_nacimiento-defuncion_por_sexo.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset de nacimientos por rango de edad de la madre
+nacimientos_por_edad_madre:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/nacimiento_rango_edad_madre.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset de defunciones por rango de edad del fallecido
+defunciones_por_edad_fallecido:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/rango_edad_fallecido.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# =============================================================================
+# NOTAS IMPORTANTES 
+# =============================================================================
+# 1. TIPO DE DATASET: pandas.CSVDataSet es el tipo correcto para CSV en kedro-datasets <2.0
+# 2. FILEPATH: Ruta relativa desde la raíz del proyecto Kedro
+# 3. LOAD_ARGS: Parámetros para cargar el archivo (separador, codificación, etc.)
+# 4. SAVE_ARGS: Parámetros para guardar el archivo cuando se procese
+# 5. SEP: Separador de columnas (',' para CSV estándar)
+# 6. ENCODING: Codificación de caracteres (utf-8 para español)
+# 7. INDEX: Si incluir o no el índice de pandas al guardar
