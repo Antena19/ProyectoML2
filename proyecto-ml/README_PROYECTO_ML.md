@@ -43,3 +43,8 @@ print(nacimientos_por_edad_madre.head())
 print("\n=== Defunciones por Edad del Fallecido ===")
 print(defunciones_por_edad_fallecido.head())
 
+# Trabajar en Jupyter Notebook
+pip install notebook
+
+# Abrir Notebook
+kedro jupyter notebook
