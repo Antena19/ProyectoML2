@@ -1,0 +1,105 @@
+# docker-compose.yml - Configuración para desarrollo con Docker
+version: '3.8'
+
+services:
+  # Servicio principal del proyecto ML
+  proyecto-ml:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proyecto-ml-container
+    volumes:
+      # Montar código fuente para desarrollo en tiempo real
+      - .:/app
+      # Montar datos para persistencia
+      - ./data:/app/data
+      # Montar configuración
+      - ./conf:/app/conf
+    environment:
+      - KEDRO_ENV=local
+      - PYTHONPATH=/app/src
+      - KEDRO_LOGGING_CONFIG=/app/conf/logging.yml
+    ports:
+      # Puerto para futuras funcionalidades web
+      - "8000:8000"
+    # Comando por defecto
+    command: python -m kedro run
+    # Reiniciar automáticamente si falla
+    restart: unless-stopped
+    # Límites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  # Servicio para ejecutar tests
+  proyecto-ml-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proyecto-ml-tests-container
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - KEDRO_ENV=local
+      - PYTHONPATH=/app/src
+    command: python -m pytest -v
+    profiles:
+      - testing
+
+  # Servicio para ejecutar pipeline de ingeniería de datos
+  proyecto-ml-ingenieria:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proyecto-ml-ingenieria-container
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - KEDRO_ENV=local
+      - PYTHONPATH=/app/src
+    command: python -m kedro run --pipeline=ingenieria_datos
+    profiles:
+      - ingenieria
+
+  # Servicio para ejecutar pipeline de ciencia de datos
+  proyecto-ml-ciencia:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proyecto-ml-ciencia-container
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - KEDRO_ENV=local
+      - PYTHONPATH=/app/src
+    command: python -m kedro run --pipeline=ciencia_datos
+    profiles:
+      - ciencia
+
+  # Servicio para ejecutar pipeline de reportes
+  proyecto-ml-reportes:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proyecto-ml-reportes-container
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - KEDRO_ENV=local
+      - PYTHONPATH=/app/src
+    command: python -m kedro run --pipeline=reportes
+    profiles:
+      - reportes
+
+# Red personalizada para comunicación entre servicios
+networks:
+  default:
+    name: proyecto-ml-network
+    driver: bridge
