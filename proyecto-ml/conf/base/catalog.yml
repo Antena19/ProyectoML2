@@ -94,7 +94,10 @@ defunciones_limpias:
 # Datasets con columnas estandarizadas
 # Resultado del nodo de estandarización de columnas
 datasets_estandarizados:
-  type: kedro.io.MemoryDataset
+  type: pickle.PickleDataset
+  filepath: data/03_primary/datasets_estandarizados.pkl
+  save_args:
+    protocol: 4
 
 # Métricas de calidad de datos
 # Resultado del nodo de validación de calidad
@@ -106,9 +109,94 @@ datasets_crudos_cargados:
   type: kedro.io.MemoryDataset
 
 # =============================================================================
+# DATASETS PRIMARIOS - RESULTADOS DEL PIPELINE DE CIENCIA DE DATOS
+# =============================================================================
+
+# Dataset unificado con todos los datos integrados
+# Resultado del nodo de integración de datasets
+dataset_unificado:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_unificado.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset con features temporales agregadas
+# Resultado del nodo de creación de features temporales
+dataset_con_features_temporales:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_con_features_temporales.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+
+# Datasets normalizados con diferentes métodos
+# Resultado del nodo de normalización
+datasets_normalizados:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/datasets_normalizados.pkl
+  save_args:
+    protocol: 4
+
+# Datasets finales optimizados para modelado
+# Resultado del nodo de creación de datasets finales
+datasets_finales_modelado:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/datasets_finales_modelado.pkl
+  save_args:
+    protocol: 4
+
+# Dataset con variables categóricas codificadas
+# Resultado del nodo de codificación de variables categóricas
+dataset_codificado:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_codificado.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset con características escaladas
+# Resultado del nodo de escalado de características
+dataset_escalado:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_escalado.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Datos preparados para modelado (diccionario con múltiples datasets)
+# Resultado del nodo de preparación de datos para modelado
+datos_preparados_modelado:
+  type: kedro.io.MemoryDataset
+
+# Mapeos de codificación para variables categóricas
+# Resultado del nodo de codificación de variables categóricas
+mapeos_codificacion:
+  type: kedro.io.MemoryDataset
+
+# Scalers utilizados para escalado de características
+# Resultado del nodo de escalado de características
+scalers_escalado:
+  type: kedro.io.MemoryDataset
+
+# =============================================================================
 # NOTAS IMPORTANTES 
 # =============================================================================
-# 1. TIPO DE DATASET: pandas.CSVDataSet es el tipo correcto para CSV en kedro-datasets <2.0
+# 1. TIPO DE DATASET: pandas.CSVDataset es el tipo correcto para CSV en kedro-datasets <2.0
 # 2. FILEPATH: Ruta relativa desde la raíz del proyecto Kedro
 # 3. LOAD_ARGS: Parámetros para cargar el archivo (separador, codificación, etc.)
 # 4. SAVE_ARGS: Parámetros para guardar el archivo cuando se procese
