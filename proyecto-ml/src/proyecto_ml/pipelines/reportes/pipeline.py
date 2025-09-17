@@ -23,7 +23,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             # Generar reporte de calidad de datos
             node(
                 func=generar_reporte_calidad_datos,
-                inputs="metricas_calidad_datos",
+                inputs=["metricas_calidad_datos", "params:reportes"],
                 outputs="reporte_calidad_datos",
                 name="generar_reporte_calidad_datos",
                 tags=["reportes", "calidad"]

@@ -30,8 +30,15 @@ class TestCienciaDatos:
         # Importar función
         from src.proyecto_ml.pipelines.ciencia_datos.nodos import crear_features_temporales_avanzadas
         
+        # Parámetros mock
+        params = {
+            "ciclicos": ["mes", "dia_año", "trimestre", "dia_semana"],
+            "especiales": ["es_fin_semana", "es_invierno", "es_verano"],
+            "basicas": ["año_normalizado", "epoca_año_codificada"]
+        }
+        
         # Ejecutar función
-        result = crear_features_temporales_avanzadas(datasets_estandarizados)
+        result = crear_features_temporales_avanzadas(datasets_estandarizados, params)
         
         # Verificar resultados
         assert isinstance(result, pd.DataFrame), "Debe retornar un DataFrame"
@@ -69,8 +76,15 @@ class TestCienciaDatos:
         # Importar función
         from src.proyecto_ml.pipelines.ciencia_datos.nodos import normalizar_datos_para_modelado
         
+        # Parámetros mock
+        params = {
+            "metodos": ["StandardScaler", "MinMaxScaler", "RobustScaler"],
+            "variables_numericas": ["año", "mes", "edad_cantidad"],
+            "metodo_principal": "StandardScaler"
+        }
+        
         # Ejecutar función
-        result = normalizar_datos_para_modelado(test_data)
+        result = normalizar_datos_para_modelado(test_data, params)
         
         # Verificar resultados
         assert isinstance(result, dict), "Debe retornar un diccionario"
@@ -115,8 +129,20 @@ class TestCienciaDatos:
         # Importar función
         from src.proyecto_ml.pipelines.ciencia_datos.nodos import crear_datasets_finales_para_modelado
         
+        # Parámetros mock
+        params = {
+            "regresion": {
+                "variables_objetivo": ["edad_cantidad"],
+                "variables_predictoras": ["mes_sin", "mes_cos"]
+            },
+            "clasificacion": {
+                "variables_objetivo": ["sexo"],
+                "variables_predictoras": ["edad_cantidad", "mes_sin"]
+            }
+        }
+        
         # Ejecutar función
-        result = crear_datasets_finales_para_modelado(datasets_normalizados)
+        result = crear_datasets_finales_para_modelado(datasets_normalizados, params)
         
         # Verificar resultados
         assert isinstance(result, dict), "Debe retornar un diccionario"

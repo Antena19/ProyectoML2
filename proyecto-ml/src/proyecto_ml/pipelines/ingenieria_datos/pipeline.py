@@ -47,7 +47,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             # Nodo 2: Limpiar dataset de defunciones (el más crítico)
             node(
                 func=limpiar_defunciones,
-                inputs="datos_filtrados_defunciones",
+                inputs=["datos_filtrados_defunciones", "params:limpieza"],
                 outputs="defunciones_limpias",
                 name="limpiar_defunciones",
                 tags=["limpieza", "defunciones"]
@@ -68,7 +68,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             # Nodo 4: Validar calidad de datos procesados
             node(
                 func=validar_calidad_datos,
-                inputs="datasets_estandarizados",
+                inputs=["datasets_estandarizados", "params:validacion"],
                 outputs="metricas_calidad_datos",
                 name="validar_calidad_datos",
                 tags=["validacion", "calidad"]
