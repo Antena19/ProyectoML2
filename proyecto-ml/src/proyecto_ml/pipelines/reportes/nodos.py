@@ -101,9 +101,14 @@ def generar_visualizaciones_calidad(
     completitud = []
     
     for dataset_name, metrics in metricas_calidad_datos.items():
-        if isinstance(metrics, dict) and "completitud" in metrics:
+        if isinstance(metrics, dict) and "valores_nulos" in metrics and "total_registros" in metrics:
+            # Calcular completitud como (1 - valores_nulos / total_registros)
+            total_registros = metrics["total_registros"]
+            valores_nulos = metrics["valores_nulos"]
+            completitud_calculada = 1 - (valores_nulos / (total_registros * metrics.get("total_columnas", 1)))
+            
             datasets.append(dataset_name.replace("_", " ").title())
-            completitud.append(metrics["completitud"])
+            completitud.append(completitud_calculada)
     
     if datasets:
         bars = ax.bar(datasets, completitud, color=['#2E8B57', '#4169E1', '#DC143C'])
@@ -155,22 +160,22 @@ def generar_visualizaciones_calidad(
             plt.close()
             visualizaciones["duplicados"] = str(ruta_duplicados)
     
-    # 3. Gráfico de outliers por dataset
+    # 3. Gráfico de valores nulos por dataset
     if datasets:  # Solo crear si hay datasets
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        outliers = []
+        valores_nulos = []
         for dataset_name, metrics in metricas_calidad_datos.items():
-            if isinstance(metrics, dict) and "outliers" in metrics:
-                outliers.append(metrics["outliers"])
+            if isinstance(metrics, dict) and "valores_nulos" in metrics:
+                valores_nulos.append(metrics["valores_nulos"])
         
-        if outliers and len(outliers) == len(datasets):
-            bars = ax.bar(datasets, outliers, color=['#FF9F43', '#10AC84', '#EE5A24'])
-            ax.set_title('Outliers Detectados por Dataset', fontsize=14, fontweight='bold')
-            ax.set_ylabel('Número de Outliers', fontsize=12)
+        if valores_nulos and len(valores_nulos) == len(datasets):
+            bars = ax.bar(datasets, valores_nulos, color=['#FF9F43', '#10AC84', '#EE5A24'])
+            ax.set_title('Valores Nulos por Dataset', fontsize=14, fontweight='bold')
+            ax.set_ylabel('Número de Valores Nulos', fontsize=12)
             
             # Agregar valores en las barras
-            for bar, value in zip(bars, outliers):
+            for bar, value in zip(bars, valores_nulos):
                 height = bar.get_height()
                 ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
                        f'{int(value)}', ha='center', va='bottom', fontweight='bold')
@@ -179,10 +184,10 @@ def generar_visualizaciones_calidad(
             plt.tight_layout()
             
             # Guardar gráfico
-            ruta_outliers = reportes_dir / "outliers_datos.png"
-            plt.savefig(ruta_outliers, dpi=300, bbox_inches='tight')
+            ruta_nulos = reportes_dir / "valores_nulos_datos.png"
+            plt.savefig(ruta_nulos, dpi=300, bbox_inches='tight')
             plt.close()
-            visualizaciones["outliers"] = str(ruta_outliers)
+            visualizaciones["valores_nulos"] = str(ruta_nulos)
     
     logger.info(f"Visualizaciones generadas: {len(visualizaciones)} archivos")
     return visualizaciones
