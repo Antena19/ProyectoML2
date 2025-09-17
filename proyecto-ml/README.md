@@ -9,10 +9,16 @@
 Este proyecto implementa un análisis completo de datos de defunciones y nacimientos en Chile utilizando la metodología **CRISP-DM** y el framework **Kedro**. El objetivo es desarrollar pipelines modulares y reproducibles para el procesamiento de datos demográficos y la preparación de datasets para modelado de Machine Learning.
 
 ### Datasets Incluidos
-- **Defunciones (2014-2023)**: Registros de defunciones con información demográfica y diagnósticos
-- **Nacimientos por Sexo**: Estadísticas de nacimientos desagregadas por género
-- **Nacimientos por Edad de Madre**: Distribución de nacimientos según edad materna
-- **Defunciones por Edad**: Registros de defunciones clasificados por edad del fallecido
+
+**IMPORTANTE: Debes colocar manualmente los siguientes 5 datasets en la carpeta `data/01_raw/`:**
+
+1. **`dataset_nacimiento-defuncion_por_sexo.csv`** - Estadísticas de nacimientos y defunciones por género
+2. **`datos_filtrados_2014_2023.csv`** - Registros de defunciones filtrados (2014-2023)
+3. **`nacimiento_rango_edad_madre.csv`** - Distribución de nacimientos según edad materna
+4. **`rango_edad_fallecido.csv`** - Registros de defunciones clasificados por edad del fallecido
+5. **`setdedatos.csv`** - Dataset histórico de nacimientos y defunciones
+
+**Nota:** Estos archivos estan en el Drive de ML
 
 ## Instalación y Configuración
 
