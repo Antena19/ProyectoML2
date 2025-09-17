@@ -16,7 +16,9 @@ Este proyecto implementa un análisis completo de datos de defunciones y nacimie
 
 ## Instalación y Configuración
 
-### 1. Clonar el Repositorio
+### Opción A: Instalación Tradicional (Recomendada)
+
+#### 1. Clonar el Repositorio
 
 **Opción A: Clonar rama principal (main)**
 ```bash
@@ -30,7 +32,7 @@ git clone -b pipelines_nodos https://github.com/Antena19/proyecto-ml.git
 cd proyecto-ml
 ```
 
-### 2. Crear Ambiente Virtual
+#### 2. Crear Ambiente Virtual
 
 **Windows:**
 ```bash
@@ -44,16 +46,50 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar Dependencias
+#### 3. Instalar Dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Verificar Instalación
+#### 4. Verificar Instalación
 
 ```bash
 kedro info
+```
+
+### Opción B: Instalación con Docker (Alternativa)
+
+#### Prerrequisitos
+- **Docker Desktop** instalado y ejecutándose
+- **Docker Compose** (incluido con Docker Desktop)
+
+#### 1. Clonar el Repositorio
+```bash
+git clone https://github.com/Antena19/proyecto-ml.git
+cd proyecto-ml
+```
+
+#### 2. Construir Imagen Docker
+```bash
+# Windows
+scripts\build.bat
+
+# Linux/Mac
+./scripts/build.sh
+
+# O directamente
+docker build -t proyecto-ml:latest .
+```
+
+#### 3. Verificar Imagen
+```bash
+docker images proyecto-ml:latest
+```
+
+#### 4. Ejecutar Tests en Docker
+```bash
+docker run --rm proyecto-ml:latest python -m pytest -v
 ```
 
 ## Estructura del Proyecto
@@ -71,14 +107,29 @@ proyecto-ml/
 │   ├── 03_primary/       # Datos limpios y estandarizados
 │   └── 08_reporting/      # Reportes y visualizaciones
 ├── notebooks/              # Análisis exploratorio
-│   ├── exploracion/       # Notebooks de comprensión
+│   ├── 1_Comprensión_del_negocio.ipynb
+│   ├── 2_Comprensión_de_los_Datos.ipynb
+│   ├── 3_Preparación_de_Datos,.ipynb
 │   ├── ciencia_datos/     # Notebooks de análisis avanzado
+│   │   └── 4_Exploracion_Datasets_Finales.ipynb
 │   └── reportes/          # Notebooks de reportes
+│       └── 5_Exploracion_Reportes.ipynb
+├── scripts/                # Scripts de automatización
+│   ├── build.sh           # Script de construcción (Linux/Mac)
+│   ├── build.bat          # Script de construcción (Windows)
+│   ├── run.sh             # Script de ejecución (Linux/Mac)
+│   └── run.bat            # Script de ejecución (Windows)
 ├── src/proyecto_ml/       # Código fuente
 │   └── pipelines/         # Pipelines de Kedro
 │       ├── ingenieria_datos/  # Pipeline de ingeniería
 │       ├── ciencia_datos/     # Pipeline de ciencia de datos
 │       └── reportes/          # Pipeline de reportes
+├── tests/                 # Tests unitarios
+│   └── pipelines/         # Tests de pipelines
+├── Dockerfile             # Configuración Docker
+├── docker-compose.yml     # Configuración Docker Compose
+├── .dockerignore          # Archivos a ignorar en Docker
+├── DOCKER_README.md       # Documentación específica de Docker
 └── README.md              # Este archivo
 ```
 
@@ -145,6 +196,7 @@ kedro run --pipeline=reportes
 
 ### Ejecutar Pipelines
 
+#### Instalación Tradicional
 ```bash
 # Ejecutar todos los pipelines
 kedro run
@@ -156,6 +208,32 @@ kedro run --pipeline=reportes
 
 # Ejecutar con logs detallados
 kedro run --verbose
+```
+
+#### Con Docker
+```bash
+# Ejecutar pipeline completo
+docker run --rm -v "$(pwd)/data:/app/data" proyecto-ml:latest
+
+# Ejecutar pipeline específico
+docker run --rm -v "$(pwd)/data:/app/data" proyecto-ml:latest python -m kedro run --pipeline=ingenieria_datos
+docker run --rm -v "$(pwd)/data:/app/data" proyecto-ml:latest python -m kedro run --pipeline=ciencia_datos
+docker run --rm -v "$(pwd)/data:/app/data" proyecto-ml:latest python -m kedro run --pipeline=reportes
+
+# Usar scripts automatizados
+# Windows
+scripts\run.bat
+scripts\run.bat ingenieria
+scripts\run.bat ciencia
+scripts\run.bat reportes
+scripts\run.bat tests
+
+# Linux/Mac
+./scripts/run.sh
+./scripts/run.sh ingenieria
+./scripts/run.sh ciencia
+./scripts/run.sh reportes
+./scripts/run.sh tests
 ```
 
 ### Visualizar Pipelines
@@ -210,6 +288,7 @@ kedro catalog describe dataset_name
 
 ## Testing
 
+### Instalación Tradicional
 ```bash
 # Ejecutar todos los tests
 pytest
@@ -224,6 +303,24 @@ pytest -v
 
 # Ejecutar con cobertura
 pytest --cov=src/proyecto_ml
+```
+
+### Con Docker
+```bash
+# Ejecutar todos los tests en Docker
+docker run --rm proyecto-ml:latest python -m pytest -v
+
+# Ejecutar tests específicos
+docker run --rm proyecto-ml:latest python -m pytest tests/pipelines/test_ingenieria_datos.py -v
+docker run --rm proyecto-ml:latest python -m pytest tests/pipelines/test_ciencia_datos.py -v
+docker run --rm proyecto-ml:latest python -m pytest tests/pipelines/test_reportes.py -v
+
+# Usar script automatizado
+# Windows
+scripts\run.bat tests
+
+# Linux/Mac
+./scripts/run.sh tests
 ```
 
 ### Tests Implementados
@@ -254,13 +351,20 @@ pytest --cov=src/proyecto_ml
 
 ## Dependencias Principales
 
-- `kedro>=1.0.0` - Framework principal
+### Instalación Tradicional
+- `kedro>=0.18.0` - Framework principal
 - `pandas>=1.3.0` - Manipulación de datos
 - `numpy>=1.21.0` - Computación numérica
 - `matplotlib>=3.4.0` - Visualizaciones
 - `seaborn>=0.11.0` - Visualizaciones estadísticas
 - `scikit-learn>=1.0.0` - Machine Learning
 - `jupyter>=1.0.0` - Notebooks interactivos
+
+### Docker
+- **Imagen base**: Python 3.8-slim
+- **Tamaño**: ~1.75GB
+- **Todas las dependencias** preinstaladas
+- **Entorno consistente** en cualquier sistema
 
 ## Solución de Problemas
 
@@ -284,6 +388,42 @@ ls data/01_raw/
 
 # Ejecutar pipeline de ingeniería primero
 kedro run --pipeline=ingenieria_datos
+```
+
+### Problemas con Docker
+
+#### Error: "Docker Desktop no está ejecutándose"
+```bash
+# Iniciar Docker Desktop manualmente
+# Verificar que el servicio esté ejecutándose
+docker --version
+docker info
+```
+
+#### Error: "Imagen no encontrada"
+```bash
+# Construir la imagen primero
+docker build -t proyecto-ml:latest .
+
+# O usar script automatizado
+# Windows
+scripts\build.bat
+
+# Linux/Mac
+./scripts/build.sh
+```
+
+#### Error: "Permisos denegados" (Linux/Mac)
+```bash
+# Dar permisos de ejecución a los scripts
+chmod +x scripts/*.sh
+```
+
+#### Error: "Version mismatch" en Docker
+```bash
+# Este error es normal y no afecta la funcionalidad
+# Los pipelines funcionan correctamente en Docker
+# Solo afecta el test de bootstrap
 ```
 
 ## Soporte

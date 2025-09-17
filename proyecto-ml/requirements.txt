@@ -11,16 +11,13 @@ plotly>=5.0.0
 scikit-learn>=1.0.0
 
 # Kedro ecosystem
-kedro>=1.0.0
+kedro>=0.18.0
 kedro-viz>=6.0.0
 kedro-datasets>=1.0.0
 
 # Utilities
 jupyter>=1.0.0
 ipykernel>=6.0.0
-ipython>=8.10
-jupyterlab>=3.0
-notebook
 
 # Additional dependencies for the project
 pathlib
