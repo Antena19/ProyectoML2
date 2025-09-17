@@ -211,12 +211,39 @@ kedro catalog describe dataset_name
 ## Testing
 
 ```bash
-# Ejecutar tests unitarios
+# Ejecutar todos los tests
 pytest
 
-# Ejecutar tests con cobertura
+# Ejecutar tests específicos
+pytest tests/pipelines/test_ingenieria_datos.py
+pytest tests/pipelines/test_ciencia_datos.py
+pytest tests/pipelines/test_reportes.py
+
+# Ejecutar con verbose
+pytest -v
+
+# Ejecutar con cobertura
 pytest --cov=src/proyecto_ml
 ```
+
+### Tests Implementados
+
+**Tests de Ingeniería de Datos:**
+- `test_limpiar_defunciones_basico()` - Verifica limpieza de datos
+- `test_estandarizar_columnas()` - Verifica estandarización de columnas
+- `test_validar_calidad_datos()` - Verifica validación de calidad
+
+**Tests de Ciencia de Datos:**
+- `test_crear_features_temporales_avanzadas()` - Verifica feature engineering
+- `test_normalizar_datos_para_modelado()` - Verifica normalización de datos
+- `test_crear_datasets_finales_para_modelado()` - Verifica creación de datasets finales
+
+**Tests de Reportes:**
+- `test_generar_reporte_calidad_datos()` - Verifica reportes de calidad
+- `test_generar_reporte_features_temporales()` - Verifica reportes de features
+- `test_generar_visualizaciones_calidad()` - Verifica visualizaciones de calidad
+- `test_generar_visualizaciones_features()` - Verifica visualizaciones de features
+- `test_generar_reporte_final()` - Verifica reporte consolidado
 
 ## Requisitos del Sistema
 
@@ -278,5 +305,3 @@ Este proyecto está bajo la licencia MIT. Ver `LICENSE` para más detalles.
 - **Framework**: Kedro 1.0.0
 
 ---
-
-**¡Éxito en tu análisis de datos!**

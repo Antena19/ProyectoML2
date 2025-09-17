@@ -58,3 +58,17 @@ kedro run --pipeline=ingenieria_datos
 kedro run --pipeline=ciencia_datos
 
 kedro run --pipeline=reportes
+
+# Ejecutar todos los tests
+pytest
+
+# Ejecutar tests específicos
+pytest tests/pipelines/test_ingenieria_datos.py
+pytest tests/pipelines/test_ciencia_datos.py
+pytest tests/pipelines/test_reportes.py
+
+# Ejecutar con verbose
+pytest -v
+
+# Ejecutar con cobertura
+pytest --cov=src/proyecto_ml
