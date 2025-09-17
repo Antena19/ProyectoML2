@@ -1,3 +1,6 @@
+# Navegar a la raiz del proyecto
+cd proyecto-ml
+
 # Crear entorno virtual
 python -m venv .venv
 
@@ -48,3 +51,6 @@ pip install notebook
 
 # Abrir Notebook
 kedro jupyter notebook
+
+# 1. Ejecutar pipeline primero
+kedro run --pipeline=ciencia_datos
