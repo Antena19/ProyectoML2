@@ -102,7 +102,10 @@ datasets_estandarizados:
 # Métricas de calidad de datos
 # Resultado del nodo de validación de calidad
 metricas_calidad_datos:
-  type: kedro.io.MemoryDataset
+  type: pickle.PickleDataset
+  filepath: data/03_primary/metricas_calidad_datos.pkl
+  save_args:
+    protocol: 4
 
 # Datasets crudos cargados (para referencia interna)
 datasets_crudos_cargados:
@@ -194,6 +197,50 @@ scalers_escalado:
   type: kedro.io.MemoryDataset
 
 # =============================================================================
+# DATASETS DE REPORTES - RESULTADOS DEL PIPELINE DE REPORTES
+# =============================================================================
+
+# Reporte de calidad de datos
+# Resultado del nodo de generación de reporte de calidad
+reporte_calidad_datos:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/reporte_calidad_datos.pkl
+  save_args:
+    protocol: 4
+
+# Visualizaciones de calidad de datos
+# Resultado del nodo de generación de visualizaciones de calidad
+visualizaciones_calidad:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/visualizaciones_calidad.pkl
+  save_args:
+    protocol: 4
+
+# Reporte de features temporales
+# Resultado del nodo de generación de reporte de features
+reporte_features_temporales:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/reporte_features_temporales.pkl
+  save_args:
+    protocol: 4
+
+# Visualizaciones de features temporales
+# Resultado del nodo de generación de visualizaciones de features
+visualizaciones_features:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/visualizaciones_features.pkl
+  save_args:
+    protocol: 4
+
+# Reporte final consolidado
+# Resultado del nodo de generación de reporte final
+reporte_final_consolidado:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/reporte_final_consolidado.pkl
+  save_args:
+    protocol: 4
+
+# =============================================================================
 # NOTAS IMPORTANTES 
 # =============================================================================
 # 1. TIPO DE DATASET: pandas.CSVDataset es el tipo correcto para CSV en kedro-datasets <2.0
@@ -204,3 +251,4 @@ scalers_escalado:
 # 6. ENCODING: Codificación de caracteres (utf-8 para español)
 # 7. INDEX: Si incluir o no el índice de pandas al guardar
 # 8. MEMORY DATASETS: Para datos temporales que no necesitan persistir en disco
+# 9. REPORTES: Los reportes se guardan como pickle para preservar estructura de datos compleja

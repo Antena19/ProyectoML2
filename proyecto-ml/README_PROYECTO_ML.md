@@ -52,5 +52,9 @@ pip install notebook
 # Abrir Notebook
 kedro jupyter notebook
 
-# 1. Ejecutar pipeline primero
+# 1. Ejecutar pipeline en orden
+kedro run --pipeline=ingenieria_datos
+
 kedro run --pipeline=ciencia_datos
+
+kedro run --pipeline=reportes
