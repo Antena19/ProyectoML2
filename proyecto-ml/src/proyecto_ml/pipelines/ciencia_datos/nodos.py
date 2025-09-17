@@ -94,7 +94,7 @@ def integrar_datasets(defunciones_limpias: pd.DataFrame) -> pd.DataFrame:
     return defunciones_por_año
 
 
-def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.DataFrame], params: Dict[str, Any]) -> pd.DataFrame:
     """
     Crea features temporales avanzadas para análisis de machine learning.
     
@@ -218,7 +218,7 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
     return dataset_con_features
 
 
-def normalizar_datos_para_modelado(dataset_con_features: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+def normalizar_datos_para_modelado(dataset_con_features: pd.DataFrame, params: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
     """
     Normaliza los datos para prepararlos para modelos de machine learning.
     
@@ -302,7 +302,7 @@ def normalizar_datos_para_modelado(dataset_con_features: pd.DataFrame) -> Dict[s
     return datasets_normalizados
 
 
-def crear_datasets_finales_para_modelado(datasets_normalizados: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+def crear_datasets_finales_para_modelado(datasets_normalizados: Dict[str, pd.DataFrame], params: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
     """
     Crea datasets finales optimizados para diferentes tipos de modelos de ML.
     

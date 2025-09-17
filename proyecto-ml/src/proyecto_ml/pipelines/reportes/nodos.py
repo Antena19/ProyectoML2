@@ -14,7 +14,8 @@ import json
 logger = logging.getLogger(__name__)
 
 def generar_reporte_calidad_datos(
-    metricas_calidad_datos: Dict[str, Any]
+    metricas_calidad_datos: Dict[str, Any], 
+    params: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Genera reporte de calidad de datos basado en las métricas calculadas.

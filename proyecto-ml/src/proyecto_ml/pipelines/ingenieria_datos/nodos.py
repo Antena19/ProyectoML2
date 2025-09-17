@@ -55,7 +55,7 @@ def cargar_datos_crudos(
     return datasets_crudos
 
 
-def limpiar_defunciones(defunciones_filtradas: pd.DataFrame) -> pd.DataFrame:
+def limpiar_defunciones(defunciones_filtradas: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
     """
     Limpia el dataset de defunciones aplicando todas las transformaciones
     identificadas en el análisis exploratorio.
@@ -229,7 +229,8 @@ def estandarizar_columnas(
 
 
 def validar_calidad_datos(
-    datasets_estandarizados: Dict[str, pd.DataFrame]
+    datasets_estandarizados: Dict[str, pd.DataFrame], 
+    params: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Valida la calidad de los datos después de la limpieza y estandarización.

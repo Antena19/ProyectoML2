@@ -32,8 +32,15 @@ class TestIngenieriaDatos:
         # Importar función de limpieza
         from src.proyecto_ml.pipelines.ingenieria_datos.nodos import limpiar_defunciones
         
+        # Parámetros mock
+        params = {
+            "eliminar_duplicados": True,
+            "eliminar_geograficos_nulos": True,
+            "estrategia_fechas_nulas": "imputacion_media_anual"
+        }
+        
         # Ejecutar función
-        result = limpiar_defunciones(test_data)
+        result = limpiar_defunciones(test_data, params)
         
         # Verificar resultados
         assert not result.empty, "El resultado no debe estar vacío"
@@ -101,8 +108,17 @@ class TestIngenieriaDatos:
         # Importar función
         from src.proyecto_ml.pipelines.ingenieria_datos.nodos import validar_calidad_datos
         
+        # Parámetros mock
+        params = {
+            "checks_calidad": ["verificar_completitud", "verificar_duplicados"],
+            "umbrales_validacion": {
+                "completitud_minima": 0.95,
+                "duplicados_maximo": 0.05
+            }
+        }
+        
         # Ejecutar función
-        result = validar_calidad_datos(datasets_estandarizados)
+        result = validar_calidad_datos(datasets_estandarizados, params)
         
         # Verificar resultados
         assert isinstance(result, dict), "Debe retornar un diccionario"

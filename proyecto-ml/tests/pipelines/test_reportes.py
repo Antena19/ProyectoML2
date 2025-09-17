@@ -32,8 +32,19 @@ class TestReportes:
         # Importar función
         from src.proyecto_ml.pipelines.reportes.nodos import generar_reporte_calidad_datos
         
+        # Parámetros mock
+        params = {
+            "calidad": {
+                "metricas_requeridas": ["completitud", "duplicados", "valores_nulos"],
+                "umbrales_alerta": {
+                    "completitud_minima": 0.90,
+                    "duplicados_maximo": 0.10
+                }
+            }
+        }
+        
         # Ejecutar función
-        result = generar_reporte_calidad_datos(metricas_calidad_datos)
+        result = generar_reporte_calidad_datos(metricas_calidad_datos, params)
         
         # Verificar resultados
         assert isinstance(result, dict), "Debe retornar un diccionario"
