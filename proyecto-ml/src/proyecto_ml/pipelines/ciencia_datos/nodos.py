@@ -131,19 +131,19 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
     if 'mes' in dataset_con_features.columns:
         dataset_con_features['mes_sin'] = np.sin(2 * np.pi * dataset_con_features['mes'] / 12)
         dataset_con_features['mes_cos'] = np.cos(2 * np.pi * dataset_con_features['mes'] / 12)
-        logger.info("✅ Features cíclicos de mes creados")
+        logger.info(" Features cíclicos de mes creados")
     
     # Features cíclicos para día del año (si está disponible)
     if 'dia_año' in dataset_con_features.columns:
         dataset_con_features['dia_año_sin'] = np.sin(2 * np.pi * dataset_con_features['dia_año'] / 365)
         dataset_con_features['dia_año_cos'] = np.cos(2 * np.pi * dataset_con_features['dia_año'] / 365)
-        logger.info("✅ Features cíclicos de día del año creados")
+        logger.info(" Features cíclicos de día del año creados")
     
     # Features cíclicos para trimestre (si está disponible)
     if 'trimestre' in dataset_con_features.columns:
         dataset_con_features['trimestre_sin'] = np.sin(2 * np.pi * dataset_con_features['trimestre'] / 4)
         dataset_con_features['trimestre_cos'] = np.cos(2 * np.pi * dataset_con_features['trimestre'] / 4)
-        logger.info("✅ Features cíclicos de trimestre creados")
+        logger.info(" Features cíclicos de trimestre creados")
     
     # 2. Codificación de día de la semana
     logger.info("Codificando día de la semana...")
@@ -158,9 +158,9 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
         # Features cíclicos para día de la semana
         dataset_con_features['dia_semana_sin'] = np.sin(2 * np.pi * dataset_con_features['dia_semana_codificado'] / 7)
         dataset_con_features['dia_semana_cos'] = np.cos(2 * np.pi * dataset_con_features['dia_semana_codificado'] / 7)
-        logger.info("✅ Día de la semana codificado y features cíclicos creados")
+        logger.info(" Día de la semana codificado y features cíclicos creados")
     else:
-        logger.warning("⚠️ Columna 'dia_semana' no encontrada")
+        logger.warning(" Columna 'dia_semana' no encontrada")
     
     # 3. Features de días especiales y épocas del año
     logger.info("Creando features de días especiales...")
@@ -168,7 +168,7 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
     # Fin de semana
     if 'dia_semana_codificado' in dataset_con_features.columns:
         dataset_con_features['es_fin_semana'] = dataset_con_features['dia_semana_codificado'].isin([6, 7]).astype(int)
-        logger.info("✅ Feature 'es_fin_semana' creado")
+        logger.info(" Feature 'es_fin_semana' creado")
     
     # Estaciones del año (basado en mes)
     if 'mes' in dataset_con_features.columns:
@@ -176,12 +176,12 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
         dataset_con_features['es_invierno'] = dataset_con_features['mes'].isin([12, 1, 2]).astype(int)
         # Verano: jun, jul, ago (6, 7, 8)
         dataset_con_features['es_verano'] = dataset_con_features['mes'].isin([6, 7, 8]).astype(int)
-        logger.info("✅ Features de estaciones creados")
+        logger.info(" Features de estaciones creados")
     
     # Trimestre fiscal (ajustado para Chile: abril-marzo)
     if 'mes' in dataset_con_features.columns:
         dataset_con_features['trimestre_fiscal'] = ((dataset_con_features['mes'] - 4) % 12) // 3 + 1
-        logger.info("✅ Feature 'trimestre_fiscal' creado")
+        logger.info(" Feature 'trimestre_fiscal' creado")
     
     # Época del año (4 épocas)
     if 'mes' in dataset_con_features.columns:
@@ -192,7 +192,7 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
             else: return 4  # Primavera
         
         dataset_con_features['epoca_año_codificada'] = dataset_con_features['mes'].apply(obtener_epoca_año)
-        logger.info("✅ Época del año codificada")
+        logger.info(" Época del año codificada")
     
     # 4. Features básicas temporales
     logger.info("Creando features básicas temporales...")
@@ -352,7 +352,7 @@ def crear_datasets_finales_para_modelado(datasets_normalizados: Dict[str, pd.Dat
         dataset_temporal['fecha_defuncion'] = pd.to_datetime(dataset_temporal['fecha_defuncion'])
         dataset_temporal = dataset_temporal.sort_values('fecha_defuncion')
         dataset_temporal['indice_temporal'] = range(len(dataset_temporal))
-        logger.info("✅ Índice temporal creado")
+        logger.info(" Índice temporal creado")
     
     # 3. Dataset con índices únicos para identificación
     logger.info("Creando dataset con índices únicos...")
@@ -366,7 +366,7 @@ def crear_datasets_finales_para_modelado(datasets_normalizados: Dict[str, pd.Dat
             dataset_indexado['region'].astype(str) + '_' +
             dataset_indexado['sexo'].astype(str)
         )
-        logger.info("✅ ID único creado")
+        logger.info(" ID único creado")
     
     # 4. Dataset resumido por agregación temporal
     logger.info("Creando dataset resumido por agregación...")
