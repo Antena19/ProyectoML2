@@ -11,7 +11,7 @@
 # Dataset principal con datos históricos de nacimientos y defunciones por año
 # Contiene información desde 1974 hasta 2023
 datos_historicos_nacimientos_defunciones:
-  type: pandas.CSVDataSet
+  type: pandas.CSVDataset
   filepath: data/01_raw/setdedatos.csv
   load_args:
     sep: ','
@@ -24,7 +24,7 @@ datos_historicos_nacimientos_defunciones:
 # Dataset con datos filtrados de defunciones (2014-2023)
 # Contiene información detallada de cada defunción con ubicación y causa
 datos_filtrados_defunciones:
-  type: pandas.CSVDataSet
+  type: pandas.CSVDataset
   filepath: data/01_raw/datos_filtrados_2014_2023.csv
   load_args:
     sep: ','
@@ -40,7 +40,7 @@ datos_filtrados_defunciones:
 
 # Dataset de nacimientos y defunciones desglosado por sexo
 nacimientos_defunciones_por_sexo:
-  type: pandas.CSVDataSet
+  type: pandas.CSVDataset
   filepath: data/01_raw/dataset_nacimiento-defuncion_por_sexo.csv
   load_args:
     sep: ','
@@ -52,7 +52,7 @@ nacimientos_defunciones_por_sexo:
 
 # Dataset de nacimientos por rango de edad de la madre
 nacimientos_por_edad_madre:
-  type: pandas.CSVDataSet
+  type: pandas.CSVDataset
   filepath: data/01_raw/nacimiento_rango_edad_madre.csv
   load_args:
     sep: ','
@@ -64,7 +64,7 @@ nacimientos_por_edad_madre:
 
 # Dataset de defunciones por rango de edad del fallecido
 defunciones_por_edad_fallecido:
-  type: pandas.CSVDataSet
+  type: pandas.CSVDataset
   filepath: data/01_raw/rango_edad_fallecido.csv
   load_args:
     sep: ','
@@ -75,12 +75,180 @@ defunciones_por_edad_fallecido:
     encoding: 'utf-8'
 
 # =============================================================================
+# DATASETS INTERMEDIOS - RESULTADOS DEL PIPELINE DE INGENIERÍA DE DATOS
+# =============================================================================
+
+# Dataset de defunciones completamente limpio
+# Resultado del nodo de limpieza de defunciones
+defunciones_limpias:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/defunciones_limpias.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Datasets con columnas estandarizadas
+# Resultado del nodo de estandarización de columnas
+datasets_estandarizados:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/datasets_estandarizados.pkl
+  save_args:
+    protocol: 4
+
+# Métricas de calidad de datos
+# Resultado del nodo de validación de calidad
+metricas_calidad_datos:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/metricas_calidad_datos.pkl
+  save_args:
+    protocol: 4
+
+# Datasets crudos cargados (para referencia interna)
+datasets_crudos_cargados:
+  type: kedro.io.MemoryDataset
+
+# =============================================================================
+# DATASETS PRIMARIOS - RESULTADOS DEL PIPELINE DE CIENCIA DE DATOS
+# =============================================================================
+
+# Dataset unificado con todos los datos integrados
+# Resultado del nodo de integración de datasets
+dataset_unificado:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_unificado.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset con features temporales agregadas
+# Resultado del nodo de creación de features temporales
+dataset_con_features_temporales:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_con_features_temporales.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+
+# Datasets normalizados con diferentes métodos
+# Resultado del nodo de normalización
+datasets_normalizados:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/datasets_normalizados.pkl
+  save_args:
+    protocol: 4
+
+# Datasets finales optimizados para modelado
+# Resultado del nodo de creación de datasets finales
+datasets_finales_modelado:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/datasets_finales_modelado.pkl
+  save_args:
+    protocol: 4
+
+# Dataset con variables categóricas codificadas
+# Resultado del nodo de codificación de variables categóricas
+dataset_codificado:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_codificado.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Dataset con características escaladas
+# Resultado del nodo de escalado de características
+dataset_escalado:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/dataset_escalado.csv
+  load_args:
+    sep: ','
+    encoding: 'utf-8'
+  save_args:
+    index: false
+    sep: ','
+    encoding: 'utf-8'
+
+# Datos preparados para modelado (diccionario con múltiples datasets)
+# Resultado del nodo de preparación de datos para modelado
+datos_preparados_modelado:
+  type: kedro.io.MemoryDataset
+
+# Mapeos de codificación para variables categóricas
+# Resultado del nodo de codificación de variables categóricas
+mapeos_codificacion:
+  type: kedro.io.MemoryDataset
+
+# Scalers utilizados para escalado de características
+# Resultado del nodo de escalado de características
+scalers_escalado:
+  type: kedro.io.MemoryDataset
+
+# =============================================================================
+# DATASETS DE REPORTES - RESULTADOS DEL PIPELINE DE REPORTES
+# =============================================================================
+
+# Reporte de calidad de datos
+# Resultado del nodo de generación de reporte de calidad
+reporte_calidad_datos:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/reporte_calidad_datos.pkl
+  save_args:
+    protocol: 4
+
+# Visualizaciones de calidad de datos
+# Resultado del nodo de generación de visualizaciones de calidad
+visualizaciones_calidad:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/visualizaciones_calidad.pkl
+  save_args:
+    protocol: 4
+
+# Reporte de features temporales
+# Resultado del nodo de generación de reporte de features
+reporte_features_temporales:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/reporte_features_temporales.pkl
+  save_args:
+    protocol: 4
+
+# Visualizaciones de features temporales
+# Resultado del nodo de generación de visualizaciones de features
+visualizaciones_features:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/visualizaciones_features.pkl
+  save_args:
+    protocol: 4
+
+# Reporte final consolidado
+# Resultado del nodo de generación de reporte final
+reporte_final_consolidado:
+  type: pickle.PickleDataset
+  filepath: data/08_reporting/reporte_final_consolidado.pkl
+  save_args:
+    protocol: 4
+
+# =============================================================================
 # NOTAS IMPORTANTES 
 # =============================================================================
-# 1. TIPO DE DATASET: pandas.CSVDataSet es el tipo correcto para CSV en kedro-datasets <2.0
+# 1. TIPO DE DATASET: pandas.CSVDataset es el tipo correcto para CSV en kedro-datasets <2.0
 # 2. FILEPATH: Ruta relativa desde la raíz del proyecto Kedro
 # 3. LOAD_ARGS: Parámetros para cargar el archivo (separador, codificación, etc.)
 # 4. SAVE_ARGS: Parámetros para guardar el archivo cuando se procese
 # 5. SEP: Separador de columnas (',' para CSV estándar)
 # 6. ENCODING: Codificación de caracteres (utf-8 para español)
 # 7. INDEX: Si incluir o no el índice de pandas al guardar
+# 8. MEMORY DATASETS: Para datos temporales que no necesitan persistir en disco
+# 9. REPORTES: Los reportes se guardan como pickle para preservar estructura de datos compleja

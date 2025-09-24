@@ -1,0 +1,157 @@
+# Parámetros del Proyecto ML - Defunciones y Nacimientos
+# Configuración externa para flexibilidad y mejores prácticas
+
+# Configuración de datos
+datos:
+  años_inicio: 2014
+  años_fin: 2023
+  columnas_obligatorias:
+    - "año"
+    - "fecha_defuncion"
+    - "sexo"
+    - "edad_cantidad"
+    - "region"
+  umbral_completitud: 0.95
+  umbral_duplicados: 0.05
+
+# Configuración de limpieza de datos
+limpieza:
+  estrategia_fechas_nulas: "imputacion_media_anual"
+  eliminar_duplicados: true
+  eliminar_geograficos_nulos: true
+  validar_rango_fechas: true
+
+# Configuración de features temporales
+features_temporales:
+  ciclicos:
+    - "mes"
+    - "dia_año"
+    - "trimestre"
+    - "dia_semana"
+  especiales:
+    - "es_fin_semana"
+    - "es_invierno"
+    - "es_verano"
+    - "trimestre_fiscal"
+  basicas:
+    - "año_normalizado"
+    - "epoca_año_codificada"
+    - "decada"
+
+# Configuración de normalización
+normalizacion:
+  metodos:
+    - "StandardScaler"
+    - "MinMaxScaler"
+    - "RobustScaler"
+  variables_numericas:
+    - "tipo_edad"
+    - "edad_cantidad"
+    - "año_fecha"
+    - "mes"
+    - "trimestre"
+    - "dia_año"
+  metodo_principal: "StandardScaler"
+
+# Configuración de datasets finales
+datasets_finales:
+  regresion:
+    variables_objetivo:
+      - "edad_cantidad"
+      - "año_normalizado"
+    variables_predictoras:
+      - "mes_sin"
+      - "mes_cos"
+      - "dia_año_sin"
+      - "dia_año_cos"
+      - "trimestre_sin"
+      - "trimestre_cos"
+      - "dia_semana_sin"
+      - "dia_semana_cos"
+      - "es_fin_semana"
+      - "es_invierno"
+      - "es_verano"
+      - "trimestre_fiscal"
+      - "epoca_año_codificada"
+  
+  clasificacion:
+    variables_objetivo:
+      - "sexo"
+      - "region"
+    variables_predictoras:
+      - "edad_cantidad"
+      - "mes_sin"
+      - "mes_cos"
+      - "dia_año_sin"
+      - "dia_año_cos"
+      - "trimestre_sin"
+      - "trimestre_cos"
+      - "dia_semana_sin"
+      - "dia_semana_cos"
+      - "es_fin_semana"
+      - "es_invierno"
+      - "es_verano"
+      - "trimestre_fiscal"
+
+# Configuración de reportes
+reportes:
+  calidad:
+    metricas_requeridas:
+      - "completitud"
+      - "duplicados"
+      - "valores_nulos"
+      - "consistencia_temporal"
+    umbrales_alerta:
+      completitud_minima: 0.90
+      duplicados_maximo: 0.10
+      valores_nulos_maximo: 0.05
+  
+  visualizaciones:
+    formato_imagen: "png"
+    dpi: 300
+    estilo: "default"
+    paleta_colores: "husl"
+    tamaño_figura:
+      ancho: 12
+      alto: 8
+
+# Configuración de validación
+validacion:
+  checks_calidad:
+    - "verificar_completitud"
+    - "verificar_duplicados"
+    - "verificar_rango_fechas"
+    - "verificar_valores_nulos"
+    - "verificar_consistencia_temporal"
+  
+  umbrales_validacion:
+    completitud_minima: 0.95
+    duplicados_maximo: 0.05
+    valores_nulos_maximo: 0.03
+
+# Configuración de logging
+logging:
+  nivel: "INFO"
+  formato: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  archivo_log: "info.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 20
+
+# Configuración de performance
+performance:
+  chunk_size: 10000
+  max_memory_usage: "2GB"
+  parallel_processing: false
+  cache_intermediate_results: true
+
+# Configuración de paths
+paths:
+  datos_raw: "data/01_raw"
+  datos_intermediate: "data/02_intermediate"
+  datos_primary: "data/03_primary"
+  datos_feature: "data/04_feature"
+  datos_model_input: "data/05_model_input"
+  reportes: "data/08_reporting"
+  logs: "logs"
+  modelos: "data/06_models"
+  salidas_modelos: "data/07_model_output"
