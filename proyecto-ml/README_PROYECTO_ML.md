@@ -16,21 +16,21 @@ uv pip install -r requirements.txt
 # Abrir sesión interactiva de Kedro
 kedro ipython
 
-# 1️⃣ Importar Kedro y crear la sesión del proyecto
+# 1 Importar Kedro y crear la sesión del proyecto
 from kedro.framework.session import KedroSession
 
 # Crear sesión del proyecto y cargar el catálogo
 session = KedroSession.create()
 catalog = session.load_context().catalog
 
-# 2️⃣ Cargar los datasets crudos (01_raw)
+# 2 Cargar los datasets crudos (01_raw)
 datos_historicos = catalog.load("datos_historicos_nacimientos_defunciones")
 datos_filtrados_defunciones = catalog.load("datos_filtrados_defunciones")
 nacimientos_por_sexo = catalog.load("nacimientos_defunciones_por_sexo")
 nacimientos_por_edad_madre = catalog.load("nacimientos_por_edad_madre")
 defunciones_por_edad_fallecido = catalog.load("defunciones_por_edad_fallecido")
 
-# 3️⃣ Mostrar un vistazo rápido de los CSV principales
+# 3 Mostrar un vistazo rápido de los CSV principales
 print("=== Datos Históricos de Nacimientos y Defunciones ===")
 print(datos_historicos.head())
 
