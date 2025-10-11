@@ -59,6 +59,11 @@ kedro run --pipeline=ciencia_datos
 
 kedro run --pipeline=reportes
 
+### Visualizar Pipelines
+
+# Abrir Kedro Viz en el navegador
+kedro viz
+
 # Ejecutar todos los tests
 pytest
 
