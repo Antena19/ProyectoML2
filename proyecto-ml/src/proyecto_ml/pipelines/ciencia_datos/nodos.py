@@ -18,183 +18,180 @@ import os
 logger = logging.getLogger(__name__)
 
 
-def integrar_datasets(defunciones_limpias: pd.DataFrame) -> pd.DataFrame:
+def integrar_datasets(
+    datasets_estandarizados: Dict[str, pd.DataFrame],
+    datos_historicos: pd.DataFrame
+) -> pd.DataFrame:
     """
-    Crea un dataset unificado basado en defunciones limpias para análisis y modelado.
+    Crea un dataset unificado integrando múltiples fuentes de datos.
     
-    Esta función toma el dataset de defunciones ya limpio y crea un dataset consolidado
-    con métricas agregadas por año, preparado para feature engineering y modelado.
+    Esta función implementa la lógica del notebook (sección 6: Integración de Datasets):
+    1. Usa datos históricos como base (1974-2023)
+    2. Integra información por sexo (2015-2023)
+    3. Crea variables derivadas: tasas, ratios, crecimiento natural
     
     Args:
-        defunciones_limpias: Dataset de defunciones ya limpio (resultado del pipeline de ingeniería de datos)
+        datasets_estandarizados: Diccionario con datasets estandarizados del pipeline de ingeniería
+                                 (incluye 'defunciones_estandarizado', 'nacimientos_por_sexo_estandarizado')
+        datos_historicos: Dataset histórico de nacimientos y defunciones (1974-2023)
         
     Returns:
-        Dataset unificado con métricas agregadas por año
+        Dataset unificado con información integrada y variables derivadas
     """
-    logger.info("Iniciando creación de dataset unificado...")
+    logger.info("Iniciando integración de datasets...")
     
-    # 1. Crear métricas agregadas de defunciones por año
-    logger.info("Agregando defunciones por año y región...")
-    logger.info(f"Usando dataset de defunciones limpias: {defunciones_limpias.shape}")
+    # Estandarizar columnas de datos históricos primero
+    logger.info("Estandarizando columnas de datos históricos...")
+    datos_historicos_std = datos_historicos.copy()
     
-    # Crear métricas agregadas de defunciones por año
-    defunciones_por_año = defunciones_limpias.groupby('año').agg({
-        'fecha_defuncion': 'count',  # Total de defunciones por año
-        'sexo': lambda x: (x == 'Hombre').sum(),  # Defunciones de hombres
-        'edad_cantidad': ['mean', 'median', 'std'],  # Estadísticas de edad
-        'region': 'nunique'  # Número de regiones con defunciones
-    }).reset_index()
+    # Mapeo de columnas de setdedatos.csv
+    mapeo_historicos = {
+        'año': 'año',  # Ya está bien
+        'a�o': 'año',  # Encoding problem
+        'Año': 'año',  # Mayúscula
+        'Nacimientos': 'nacimientos_totales',
+        'Defunciones': 'defunciones_totales'
+    }
     
-    # Aplanar nombres de columnas
-    defunciones_por_año.columns = [
-        'año', 'total_defunciones_año', 'defunciones_hombres_año',
-        'edad_promedio_defunciones', 'edad_mediana_defunciones', 
-        'edad_std_defunciones', 'regiones_con_defunciones'
-    ]
+    # Renombrar solo las columnas que existen
+    columnas_existentes = {k: v for k, v in mapeo_historicos.items() if k in datos_historicos_std.columns}
+    datos_historicos_std = datos_historicos_std.rename(columns=columnas_existentes)
+    logger.info(f"Columnas estandarizadas: {list(datos_historicos_std.columns)}")
     
-    logger.info(f"Defunciones por año: {defunciones_por_año.shape}")
+    # Extraer datasets del diccionario
+    nacimientos_por_sexo = datasets_estandarizados.get("nacimientos_por_sexo_estandarizado")
     
-    # 2. Crear métricas derivadas básicas
-    logger.info("Creando métricas derivadas...")
+    if nacimientos_por_sexo is None:
+        logger.warning("No se encontró 'nacimientos_por_sexo_estandarizado', usando solo datos históricos")
+        dataset_unificado = datos_historicos_std.copy()
+    else:
+        logger.info(f"Dataset histórico: {datos_historicos_std.shape}")
+        logger.info(f"Dataset por sexo: {nacimientos_por_sexo.shape}")
+        
+        # 1. Crear dataset base con información histórica (serie más larga: 1974-2023)
+        dataset_unificado = datos_historicos_std.copy()
+        logger.info(f"Dataset base (datos históricos): {dataset_unificado.shape}")
+        
+        # 2. Integrar información por sexo para años 2015-2023
+        logger.info("Integrando información por sexo...")
+        dataset_unificado = dataset_unificado.merge(
+            nacimientos_por_sexo,
+            on='año',
+            how='left',
+            suffixes=('_total', '_sexo')
+        )
+        logger.info(f"Después de integrar por_sexo: {dataset_unificado.shape}")
+        
+        # 3. Generar variables derivadas (según notebook sección 6.3)
+        logger.info("Generando variables derivadas...")
+        
+        # Tasas de natalidad y mortalidad (aproximación sin población exacta)
+        dataset_unificado['tasa_natalidad'] = (
+            dataset_unificado['nacimientos_totales'] / 1000
+        ).round(2)
+        
+        dataset_unificado['tasa_mortalidad'] = (
+            dataset_unificado['defunciones_totales'] / 1000
+        ).round(2)
+        
+        # Ratio de nacimientos por sexo (solo para años con datos completos)
+        if 'nacimientos_hombres' in dataset_unificado.columns:
+            dataset_unificado['ratio_nacimientos_sexo'] = (
+                dataset_unificado['nacimientos_hombres'] / dataset_unificado['nacimientos_mujeres']
+            ).round(3)
+        
+        # Ratio de defunciones por sexo
+        if 'defunciones_hombres' in dataset_unificado.columns:
+            dataset_unificado['ratio_defunciones_sexo'] = (
+                dataset_unificado['defunciones_hombres'] / dataset_unificado['defunciones_mujeres']
+            ).round(3)
+        
+        # Crecimiento natural (nacimientos - defunciones)
+        dataset_unificado['crecimiento_natural'] = (
+            dataset_unificado['nacimientos_totales'] - dataset_unificado['defunciones_totales']
+        )
+        
+        # Porcentaje de crecimiento natural
+        dataset_unificado['porcentaje_crecimiento_natural'] = (
+            (dataset_unificado['crecimiento_natural'] / dataset_unificado['nacimientos_totales']) * 100
+        ).round(2)
+        
+        # Proporción de nacimientos por sexo
+        if 'nacimientos_hombres' in dataset_unificado.columns:
+            dataset_unificado['proporcion_nacimientos_hombres'] = (
+                dataset_unificado['nacimientos_hombres'] / dataset_unificado['nacimientos_totales']
+            ).round(3)
+            
+            dataset_unificado['proporcion_nacimientos_mujeres'] = (
+                dataset_unificado['nacimientos_mujeres'] / dataset_unificado['nacimientos_totales']
+            ).round(3)
+        
+        # Proporción de defunciones por sexo
+        if 'defunciones_hombres' in dataset_unificado.columns:
+            dataset_unificado['proporcion_defunciones_hombres'] = (
+                dataset_unificado['defunciones_hombres'] / dataset_unificado['defunciones_totales']
+            ).round(3)
+            
+            dataset_unificado['proporcion_defunciones_mujeres'] = (
+                dataset_unificado['defunciones_mujeres'] / dataset_unificado['defunciones_totales']
+            ).round(3)
+        
+        logger.info("Variables derivadas creadas exitosamente")
     
-    # Calcular proporción de defunciones por sexo
-    defunciones_por_año['proporcion_defunciones_hombres'] = (
-        defunciones_por_año['defunciones_hombres_año'] / 
-        defunciones_por_año['total_defunciones_año']
-    )
-    
-    defunciones_por_año['proporcion_defunciones_mujeres'] = (
-        1 - defunciones_por_año['proporcion_defunciones_hombres']
-    )
-    
-    # Calcular densidad de defunciones por región
-    defunciones_por_año['densidad_defunciones_por_region'] = (
-        defunciones_por_año['total_defunciones_año'] / 
-        defunciones_por_año['regiones_con_defunciones']
-    )
-    
-    logger.info("Métricas derivadas creadas exitosamente")
-    
-    # 3. Resumen final
+    # 4. Resumen final
     logger.info("=== RESUMEN DE INTEGRACIÓN ===")
-    logger.info(f"Dataset unificado: {defunciones_por_año.shape}")
-    logger.info(f"Años cubiertos: {sorted(defunciones_por_año['año'].unique())}")
-    logger.info(f"Columnas totales: {defunciones_por_año.shape[1]}")
+    logger.info(f"Dataset unificado: {dataset_unificado.shape}")
+    logger.info(f"Años cubiertos: {sorted(dataset_unificado['año'].unique())}")
+    logger.info(f"Rango temporal: {dataset_unificado['año'].min()} - {dataset_unificado['año'].max()}")
+    logger.info(f"Columnas totales: {dataset_unificado.shape[1]}")
+    logger.info(f"Columnas: {list(dataset_unificado.columns)}")
     
     # Verificar valores nulos
-    nulos_por_columna = defunciones_por_año.isnull().sum()
+    nulos_por_columna = dataset_unificado.isnull().sum()
     columnas_con_nulos = nulos_por_columna[nulos_por_columna > 0]
     if len(columnas_con_nulos) > 0:
-        logger.warning(f"Columnas con valores nulos: {len(columnas_con_nulos)}")
-        logger.warning(f"Columnas: {list(columnas_con_nulos.index)}")
+        logger.info(f"Columnas con valores nulos: {len(columnas_con_nulos)}")
+        logger.info(f"Detalle: {dict(columnas_con_nulos)}")
     else:
         logger.info("No se encontraron valores nulos")
     
     logger.info("Integración de datasets completada exitosamente")
-    return defunciones_por_año
+    return dataset_unificado
 
 
-def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.DataFrame], params: Dict[str, Any]) -> pd.DataFrame:
+def crear_features_temporales_avanzadas(
+    dataset_unificado: pd.DataFrame,
+    params: Dict[str, Any]
+) -> pd.DataFrame:
     """
     Crea features temporales avanzadas para análisis de machine learning.
     
-    Esta función toma los datasets estandarizados del pipeline de ingeniería
-    y aplica feature engineering avanzado basado en el notebook:
-    1. Features cíclicos (sin, cos) para capturar estacionalidad
-    2. Codificación de variables categóricas temporales
-    3. Features de días especiales y épocas del año
+    Esta función implementa el feature engineering completo del notebook (sección 8.3):
+    1. Features básicos temporales (año normalizado, década, siglo)
+    2. Features de tendencia (lineal, cuadrática, cíclica)
+    3. Promedios móviles (ventanas de 3 años)
+    4. Features de volatilidad (desviación estándar móvil)
+    5. Features de cambio año a año
+    6. Features de posición relativa (percentiles)
     
     Args:
-        datasets_estandarizados: Diccionario con datasets estandarizados
+        dataset_unificado: Dataset unificado con datos agregados por año
+        params: Parámetros de configuración para features temporales
         
     Returns:
         Dataset con features temporales avanzadas
     """
     logger.info("Iniciando creación de features temporales avanzadas...")
-    
-    # Extraer dataset de defunciones del diccionario
-    defunciones_estandarizado = datasets_estandarizados["defunciones_estandarizado"]
-    logger.info(f"Usando dataset de defunciones estandarizado: {defunciones_estandarizado.shape}")
+    logger.info(f"Dataset unificado recibido: {dataset_unificado.shape}")
     
     # Crear copia para trabajar
-    dataset_con_features = defunciones_estandarizado.copy()
+    dataset_con_features = dataset_unificado.copy()
     
-    # 1. Features cíclicos para capturar estacionalidad
-    logger.info("Creando features cíclicos...")
+    # Ordenar por año para cálculos temporales
+    dataset_con_features = dataset_con_features.sort_values('año').reset_index(drop=True)
+    logger.info("Dataset ordenado por año")
     
-    # Verificar que tenemos las columnas temporales necesarias
-    columnas_temporales = ['mes', 'dia_año', 'trimestre']
-    columnas_disponibles = [col for col in columnas_temporales if col in dataset_con_features.columns]
-    logger.info(f"Columnas temporales disponibles: {columnas_disponibles}")
-    
-    # Features cíclicos para mes (si está disponible)
-    if 'mes' in dataset_con_features.columns:
-        dataset_con_features['mes_sin'] = np.sin(2 * np.pi * dataset_con_features['mes'] / 12)
-        dataset_con_features['mes_cos'] = np.cos(2 * np.pi * dataset_con_features['mes'] / 12)
-        logger.info(" Features cíclicos de mes creados")
-    
-    # Features cíclicos para día del año (si está disponible)
-    if 'dia_año' in dataset_con_features.columns:
-        dataset_con_features['dia_año_sin'] = np.sin(2 * np.pi * dataset_con_features['dia_año'] / 365)
-        dataset_con_features['dia_año_cos'] = np.cos(2 * np.pi * dataset_con_features['dia_año'] / 365)
-        logger.info(" Features cíclicos de día del año creados")
-    
-    # Features cíclicos para trimestre (si está disponible)
-    if 'trimestre' in dataset_con_features.columns:
-        dataset_con_features['trimestre_sin'] = np.sin(2 * np.pi * dataset_con_features['trimestre'] / 4)
-        dataset_con_features['trimestre_cos'] = np.cos(2 * np.pi * dataset_con_features['trimestre'] / 4)
-        logger.info(" Features cíclicos de trimestre creados")
-    
-    # 2. Codificación de día de la semana
-    logger.info("Codificando día de la semana...")
-    if 'dia_semana' in dataset_con_features.columns:
-        # Mapeo de días de la semana
-        mapeo_dias_semana = {
-            'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4,
-            'Friday': 5, 'Saturday': 6, 'Sunday': 7
-        }
-        dataset_con_features['dia_semana_codificado'] = dataset_con_features['dia_semana'].map(mapeo_dias_semana)
-        
-        # Features cíclicos para día de la semana
-        dataset_con_features['dia_semana_sin'] = np.sin(2 * np.pi * dataset_con_features['dia_semana_codificado'] / 7)
-        dataset_con_features['dia_semana_cos'] = np.cos(2 * np.pi * dataset_con_features['dia_semana_codificado'] / 7)
-        logger.info(" Día de la semana codificado y features cíclicos creados")
-    else:
-        logger.warning(" Columna 'dia_semana' no encontrada")
-    
-    # 3. Features de días especiales y épocas del año
-    logger.info("Creando features de días especiales...")
-    
-    # Fin de semana
-    if 'dia_semana_codificado' in dataset_con_features.columns:
-        dataset_con_features['es_fin_semana'] = dataset_con_features['dia_semana_codificado'].isin([6, 7]).astype(int)
-        logger.info(" Feature 'es_fin_semana' creado")
-    
-    # Estaciones del año (basado en mes)
-    if 'mes' in dataset_con_features.columns:
-        # Invierno: dic, ene, feb (12, 1, 2)
-        dataset_con_features['es_invierno'] = dataset_con_features['mes'].isin([12, 1, 2]).astype(int)
-        # Verano: jun, jul, ago (6, 7, 8)
-        dataset_con_features['es_verano'] = dataset_con_features['mes'].isin([6, 7, 8]).astype(int)
-        logger.info(" Features de estaciones creados")
-    
-    # Trimestre fiscal (ajustado para Chile: abril-marzo)
-    if 'mes' in dataset_con_features.columns:
-        dataset_con_features['trimestre_fiscal'] = ((dataset_con_features['mes'] - 4) % 12) // 3 + 1
-        logger.info(" Feature 'trimestre_fiscal' creado")
-    
-    # Época del año (4 épocas)
-    if 'mes' in dataset_con_features.columns:
-        def obtener_epoca_año(mes):
-            if mes in [12, 1, 2]: return 1  # Verano
-            elif mes in [3, 4, 5]: return 2  # Otoño
-            elif mes in [6, 7, 8]: return 3  # Invierno
-            else: return 4  # Primavera
-        
-        dataset_con_features['epoca_año_codificada'] = dataset_con_features['mes'].apply(obtener_epoca_año)
-        logger.info(" Época del año codificada")
-    
-    # 4. Features básicas temporales
+    # 1. Features básicas temporales
     logger.info("Creando features básicas temporales...")
     
     # Año normalizado (para modelos que requieren escalado)
@@ -205,16 +202,149 @@ def crear_features_temporales_avanzadas(datasets_estandarizados: Dict[str, pd.Da
     # Década (para análisis de tendencias a largo plazo)
     dataset_con_features['decada'] = (dataset_con_features['año'] // 10) * 10
     
-    # Resumen de features creados
-    logger.info("=== RESUMEN DE FEATURES TEMPORALES CREADAS ===")
-    features_ciclicos = [col for col in dataset_con_features.columns if '_sin' in col or '_cos' in col]
-    features_especiales = [col for col in dataset_con_features.columns if col.startswith('es_') or 'fiscal' in col or 'epoca' in col]
+    # Siglo (para análisis de tendencias muy largas)
+    dataset_con_features['siglo'] = (dataset_con_features['año'] // 100) * 100
     
-    logger.info(f"Features cíclicos creados: {len(features_ciclicos)}")
-    logger.info(f"Features especiales creados: {len(features_especiales)}")
-    logger.info(f"Dataset final con features temporales: {dataset_con_features.shape}")
+    logger.info(" Features básicas temporales creadas")
     
-    logger.info("Features temporales avanzadas creadas exitosamente")
+    # 2. Features de tendencia
+    logger.info("Creando features de tendencia...")
+    
+    # Tendencia lineal (años desde el inicio)
+    dataset_con_features['tendencia_lineal'] = (
+        dataset_con_features['año'] - dataset_con_features['año'].min()
+    )
+    
+    # Tendencia cuadrática (para capturar aceleraciones)
+    dataset_con_features['tendencia_cuadratica'] = (
+        dataset_con_features['tendencia_lineal'] ** 2
+    )
+    
+    logger.info(" Features de tendencia creadas")
+    
+    # 3. Features cíclicas
+    logger.info("Creando features cíclicas...")
+    
+    # Ciclo de 5 años (para capturar ciclos económicos)
+    dataset_con_features['ciclo_5_anos'] = (
+        dataset_con_features['año'] % 5
+    )
+    
+    # Ciclo de 10 años (para capturar ciclos demográficos)
+    dataset_con_features['ciclo_10_anos'] = (
+        dataset_con_features['año'] % 10
+    )
+    
+    logger.info(" Features cíclicas creadas")
+    
+    # 4. Features de cambio y crecimiento
+    logger.info("Creando features de cambio año a año...")
+    
+    # Verificar que las columnas existen antes de calcular diferencias
+    if 'nacimientos_totales' in dataset_con_features.columns:
+        # Cambio en nacimientos
+        dataset_con_features['cambio_nacimientos'] = (
+            dataset_con_features['nacimientos_totales'].diff()
+        )
+        logger.info(" Feature 'cambio_nacimientos' creado")
+    
+    if 'defunciones_totales' in dataset_con_features.columns:
+        # Cambio en defunciones
+        dataset_con_features['cambio_defunciones'] = (
+            dataset_con_features['defunciones_totales'].diff()
+        )
+        logger.info(" Feature 'cambio_defunciones' creado")
+    
+    if 'crecimiento_natural' in dataset_con_features.columns:
+        # Cambio en crecimiento poblacional
+        dataset_con_features['cambio_crecimiento_poblacional'] = (
+            dataset_con_features['crecimiento_natural'].diff()
+        )
+        logger.info(" Feature 'cambio_crecimiento_poblacional' creado")
+    
+    # 5. Features de promedio móvil (ventana de 3 años)
+    logger.info("Creando promedios móviles...")
+    
+    if 'nacimientos_totales' in dataset_con_features.columns:
+        # Promedio móvil de nacimientos
+        dataset_con_features['promedio_movil_nacimientos_3'] = (
+            dataset_con_features['nacimientos_totales'].rolling(window=3, min_periods=1).mean()
+        )
+        logger.info(" Feature 'promedio_movil_nacimientos_3' creado")
+    
+    if 'defunciones_totales' in dataset_con_features.columns:
+        # Promedio móvil de defunciones
+        dataset_con_features['promedio_movil_defunciones_3'] = (
+            dataset_con_features['defunciones_totales'].rolling(window=3, min_periods=1).mean()
+        )
+        logger.info(" Feature 'promedio_movil_defunciones_3' creado")
+    
+    if 'crecimiento_natural' in dataset_con_features.columns:
+        # Promedio móvil de crecimiento poblacional
+        dataset_con_features['promedio_movil_crecimiento_3'] = (
+            dataset_con_features['crecimiento_natural'].rolling(window=3, min_periods=1).mean()
+        )
+        logger.info(" Feature 'promedio_movil_crecimiento_3' creado")
+    
+    # 6. Features de volatilidad
+    logger.info("Creando features de volatilidad...")
+    
+    if 'nacimientos_totales' in dataset_con_features.columns:
+        # Volatilidad de nacimientos (desviación estándar móvil)
+        dataset_con_features['volatilidad_nacimientos_3'] = (
+            dataset_con_features['nacimientos_totales'].rolling(window=3, min_periods=1).std()
+        )
+        logger.info(" Feature 'volatilidad_nacimientos_3' creado")
+    
+    if 'defunciones_totales' in dataset_con_features.columns:
+        # Volatilidad de defunciones
+        dataset_con_features['volatilidad_defunciones_3'] = (
+            dataset_con_features['defunciones_totales'].rolling(window=3, min_periods=1).std()
+        )
+        logger.info(" Feature 'volatilidad_defunciones_3' creado")
+    
+    # 7. Features de posición relativa
+    logger.info("Creando features de posición relativa...")
+    
+    if 'nacimientos_totales' in dataset_con_features.columns:
+        # Percentil de nacimientos en el año
+        dataset_con_features['percentil_nacimientos'] = (
+            dataset_con_features['nacimientos_totales'].rank(pct=True)
+        )
+        logger.info(" Feature 'percentil_nacimientos' creado")
+    
+    if 'defunciones_totales' in dataset_con_features.columns:
+        # Percentil de defunciones en el año
+        dataset_con_features['percentil_defunciones'] = (
+            dataset_con_features['defunciones_totales'].rank(pct=True)
+        )
+        logger.info(" Feature 'percentil_defunciones' creado")
+    
+    # 8. Resumen de features creadas
+    logger.info("=== RESUMEN DE FEATURES TEMPORALES ===")
+    
+    # Contar diferentes tipos de features
+    features_temporales = [
+        'año_normalizado', 'decada', 'siglo', 'tendencia_lineal', 'tendencia_cuadratica',
+        'ciclo_5_anos', 'ciclo_10_anos', 'cambio_nacimientos', 'cambio_defunciones',
+        'cambio_crecimiento_poblacional', 'promedio_movil_nacimientos_3',
+        'promedio_movil_defunciones_3', 'promedio_movil_crecimiento_3',
+        'volatilidad_nacimientos_3', 'volatilidad_defunciones_3',
+        'percentil_nacimientos', 'percentil_defunciones'
+    ]
+    
+    # Contar cuántas se crearon realmente
+    features_creadas = [f for f in features_temporales if f in dataset_con_features.columns]
+    
+    logger.info(f"Features temporales creadas: {len(features_creadas)}/{len(features_temporales)}")
+    logger.info(f"Dataset final: {dataset_con_features.shape}")
+    
+    # Verificar valores nulos en features nuevas
+    if features_creadas:
+        nulos_features = dataset_con_features[features_creadas].isnull().sum().sum()
+        logger.info(f"Valores nulos en features temporales: {nulos_features}")
+    
+    logger.info("Creación de features temporales completada exitosamente")
     return dataset_con_features
 
 
@@ -222,16 +352,49 @@ def normalizar_datos_para_modelado(dataset_con_features: pd.DataFrame, params: D
     """
     Normaliza los datos para prepararlos para modelos de machine learning.
     
-    Esta función aplica diferentes tipos de normalización basados en el notebook:
-    1. StandardScaler para la mayoría de variables
-    2. MinMaxScaler para variables que requieren rango [0,1]
-    3. RobustScaler para variables con outliers
+    Esta función aplica diferentes tipos de normalización según el tipo de variable
+    y el algoritmo de ML que se usará posteriormente. Implementa tres métodos:
+    
+    1. StandardScaler (media=0, desviación=1):
+       - Para variables con distribución aproximadamente normal
+       - Ideal para: Regresión Lineal, SVM, Regresión Logística
+       - Ejemplo: edad_promedio, tasas, proporciones
+    
+    2. MinMaxScaler (escala [0,1]):
+       - Para variables que deben estar en un rango específico
+       - Ideal para: Redes Neuronales, K-means, algoritmos de distancia
+       - Ejemplo: promedios móviles, volatilidad
+    
+    3. RobustScaler (resistente a outliers):
+       - Para variables con outliers significativos
+       - Usa mediana y rango intercuartílico en lugar de media
+       - Ideal para: Datos demográficos con valores extremos
+       - Ejemplo: totales de nacimientos/defunciones, cambios año a año
+    
+    Nota: Las variables categóricas codificadas (0, 1, 2...) no se normalizan,
+    ya que representan categorías, no magnitudes.
     
     Args:
-        dataset_con_features: Dataset con features temporales avanzadas
+        dataset_con_features: Dataset con features temporales avanzadas (del nodo anterior)
+        params: Parámetros de configuración (métodos, variables, etc.)
         
     Returns:
-        Diccionario con datasets normalizados usando diferentes métodos
+        Diccionario con datasets normalizados:
+        - 'dataset_modelado_standard': Normalizado con StandardScaler
+        - 'dataset_modelado_minmax': Normalizado con MinMaxScaler
+        - 'dataset_modelado_robust': Normalizado con RobustScaler
+        - 'dataset_final_modelado': Dataset principal para modelado
+        - 'info_normalizacion': Metadatos sobre la normalización
+    
+    Raises:
+        ValueError: Si no hay variables numéricas para normalizar
+    
+    Example:
+        >>> datasets_norm = normalizar_datos_para_modelado(dataset_features, params)
+        >>> # Para regresión lineal, usar:
+        >>> dataset_std = datasets_norm['dataset_modelado_standard']
+        >>> # Para redes neuronales, usar:
+        >>> dataset_minmax = datasets_norm['dataset_modelado_minmax']
     """
     logger.info("Iniciando normalización de datos para modelado...")
     
@@ -306,18 +469,62 @@ def crear_datasets_finales_para_modelado(datasets_normalizados: Dict[str, pd.Dat
     """
     Crea datasets finales optimizados para diferentes tipos de modelos de ML.
     
-    Esta función toma los datasets normalizados y crea versiones específicas
-    para diferentes algoritmos de machine learning:
-    1. Dataset para modelos de regresión
-    2. Dataset para modelos de clasificación
-    3. Dataset para análisis temporal
-    4. Dataset con índices únicos
+    Esta función toma los datasets normalizados y crea versiones especializadas
+    para diferentes algoritmos y casos de uso de machine learning. Es el último
+    paso antes del modelado.
+    
+    Datasets creados:
+    
+    1. dataset_regresion:
+       - Selecciona features relevantes para predicción de valores continuos
+       - Incluye: features temporales cíclicos, features especiales, año normalizado
+       - Uso: Predecir cantidades (nacimientos, defunciones, tasas)
+       - Algoritmos sugeridos: Linear Regression, Random Forest Regressor, XGBoost
+    
+    2. dataset_temporal:
+       - Dataset ordenado cronológicamente con índice temporal
+       - Incluye columna 'indice_temporal' para series de tiempo
+       - Uso: Forecasting, análisis de tendencias, ARIMA, LSTM
+       - Importante: Mantiene orden temporal estricto
+    
+    3. dataset_indexado:
+       - Dataset con identificador único compuesto: año_mes_región_sexo
+       - Facilita tracking de predicciones individuales
+       - Uso: Producción, auditoría, validación cruzada personalizada
+    
+    4. dataset_resumido:
+       - Agregado por año y mes (reduce dimensionalidad)
+       - Promedios de features para análisis de alto nivel
+       - Uso: Dashboards, reportes ejecutivos, análisis exploratorio
+    
+    5. dataset_completo:
+       - Dataset sin modificaciones (todas las features)
+       - Uso: Experimentación, feature selection, análisis ad-hoc
+    
+    Cada dataset está diseñado para un propósito específico, optimizando
+    el rendimiento y la interpretabilidad de los modelos.
     
     Args:
-        datasets_normalizados: Diccionario con datasets normalizados
+        datasets_normalizados: Diccionario con datasets normalizados del nodo anterior
+                               (debe contener 'dataset_final_modelado')
+        params: Parámetros de configuración con variables objetivo y predictoras
         
     Returns:
-        Diccionario con datasets finales para modelado
+        Diccionario con 5 datasets especializados:
+        - 'dataset_regresion': Para modelos de regresión
+        - 'dataset_temporal': Para análisis de series de tiempo
+        - 'dataset_indexado': Con IDs únicos para tracking
+        - 'dataset_resumido': Agregado por período
+        - 'dataset_completo': Dataset sin filtrar
+    
+    Example:
+        >>> datasets_finales = crear_datasets_finales_para_modelado(datasets_norm, params)
+        >>> # Para modelo de regresión:
+        >>> X = datasets_finales['dataset_regresion']
+        >>> # Para forecasting:
+        >>> ts_data = datasets_finales['dataset_temporal']
+        >>> # Para producción con tracking:
+        >>> prod_data = datasets_finales['dataset_indexado']
     """
     logger.info("Iniciando creación de datasets finales para modelado...")
     
@@ -402,129 +609,53 @@ def crear_datasets_finales_para_modelado(datasets_normalizados: Dict[str, pd.Dat
     
     logger.info("Datasets finales para modelado creados exitosamente")
     return datasets_finales
-    dataset_con_features['tendencia_lineal'] = (
-        dataset_con_features['año'] - dataset_con_features['año'].min()
-    )
-    
-    # Tendencia cuadrática (para capturar aceleraciones)
-    dataset_con_features['tendencia_cuadratica'] = (
-        dataset_con_features['tendencia_lineal'] ** 2
-    )
-    
-    # 3. Features cíclicas
-    logger.info("Creando features cíclicas...")
-    
-    # Ciclo de 5 años (para capturar ciclos económicos)
-    dataset_con_features['ciclo_5_anos'] = (
-        dataset_con_features['año'] % 5
-    )
-    
-    # Ciclo de 10 años (para capturar ciclos demográficos)
-    dataset_con_features['ciclo_10_anos'] = (
-        dataset_con_features['año'] % 10
-    )
-    
-    # 4. Features de cambio y crecimiento
-    logger.info("Creando features de cambio...")
-    
-    # Calcular cambios año a año
-    dataset_con_features = dataset_con_features.sort_values('año')
-    
-    # Cambio en nacimientos
-    dataset_con_features['cambio_nacimientos'] = (
-        dataset_con_features['total_nacimientos_año'].diff()
-    )
-    
-    # Cambio en defunciones
-    dataset_con_features['cambio_defunciones'] = (
-        dataset_con_features['total_defunciones_año'].diff()
-    )
-    
-    # Cambio en crecimiento poblacional
-    dataset_con_features['cambio_crecimiento_poblacional'] = (
-        dataset_con_features['crecimiento_poblacional'].diff()
-    )
-    
-    # 5. Features de promedio móvil (ventana de 3 años)
-    logger.info("Creando promedios móviles...")
-    
-    # Promedio móvil de nacimientos
-    dataset_con_features['promedio_movil_nacimientos_3'] = (
-        dataset_con_features['total_nacimientos_año'].rolling(window=3, min_periods=1).mean()
-    )
-    
-    # Promedio móvil de defunciones
-    dataset_con_features['promedio_movil_defunciones_3'] = (
-        dataset_con_features['total_defunciones_año'].rolling(window=3, min_periods=1).mean()
-    )
-    
-    # Promedio móvil de crecimiento poblacional
-    dataset_con_features['promedio_movil_crecimiento_3'] = (
-        dataset_con_features['crecimiento_poblacional'].rolling(window=3, min_periods=1).mean()
-    )
-    
-    # 6. Features de volatilidad
-    logger.info("Creando features de volatilidad...")
-    
-    # Volatilidad de nacimientos (desviación estándar móvil)
-    dataset_con_features['volatilidad_nacimientos_3'] = (
-        dataset_con_features['total_nacimientos_año'].rolling(window=3, min_periods=1).std()
-    )
-    
-    # Volatilidad de defunciones
-    dataset_con_features['volatilidad_defunciones_3'] = (
-        dataset_con_features['total_defunciones_año'].rolling(window=3, min_periods=1).std()
-    )
-    
-    # 7. Features de posición relativa
-    logger.info("Creando features de posición relativa...")
-    
-    # Percentil de nacimientos en el año
-    dataset_con_features['percentil_nacimientos'] = (
-        dataset_con_features['total_nacimientos_año'].rank(pct=True)
-    )
-    
-    # Percentil de defunciones en el año
-    dataset_con_features['percentil_defunciones'] = (
-        dataset_con_features['total_defunciones_año'].rank(pct=True)
-    )
-    
-    # 8. Resumen de features creadas
-    logger.info("=== RESUMEN DE FEATURES TEMPORALES ===")
-    features_temporales = [
-        'año_normalizado', 'decada', 'siglo', 'tendencia_lineal', 'tendencia_cuadratica',
-        'ciclo_5_anos', 'ciclo_10_anos', 'cambio_nacimientos', 'cambio_defunciones',
-        'cambio_crecimiento_poblacional', 'promedio_movil_nacimientos_3',
-        'promedio_movil_defunciones_3', 'promedio_movil_crecimiento_3',
-        'volatilidad_nacimientos_3', 'volatilidad_defunciones_3',
-        'percentil_nacimientos', 'percentil_defunciones'
-    ]
-    
-    logger.info(f"Features temporales creadas: {len(features_temporales)}")
-    logger.info(f"Dataset final: {dataset_con_features.shape}")
-    
-    # Verificar valores nulos en features nuevas
-    nulos_features = dataset_con_features[features_temporales].isnull().sum().sum()
-    logger.info(f"Valores nulos en features temporales: {nulos_features}")
-    
-    logger.info("Creación de features temporales completada exitosamente")
-    return dataset_con_features
 
 
 def codificar_variables_categoricas(dataset_con_features: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """
     Codifica variables categóricas usando diferentes estrategias según el tipo de variable.
     
-    Esta función aplica codificación apropiada a variables categóricas:
-    - Label Encoding para variables ordinales
-    - One-Hot Encoding para variables nominales
-    - Codificación personalizada para variables específicas
+    Esta función implementa tres estrategias de codificación según la naturaleza
+    de cada variable categórica:
+    
+    1. Label Encoding (para variables ORDINALES):
+       - Variables con orden natural: década (1970 < 1980 < 1990)
+       - Asigna números secuenciales: 0, 1, 2, 3...
+       - Preserva el orden inherente de las categorías
+       - Ejemplos: década, siglo, categorías de crecimiento
+    
+    2. One-Hot Encoding (para variables NOMINALES):
+       - Variables sin orden natural: ciclo_5_anos, ciclo_10_anos
+       - Crea columnas binarias (0/1) para cada categoría
+       - Evita que el modelo asuma orden donde no existe
+       - Aumenta dimensionalidad pero mejora precisión
+    
+    3. Codificación Personalizada:
+       - Categorías derivadas de bins numéricos
+       - Ejemplo: 'crecimiento_poblacional' → 'decrecimiento_alto', 'crecimiento_bajo', etc.
+    
+    La función también crea variables binarias útiles para clasificación:
+    - crecimiento_positivo (1 si crecimiento > 0)
+    - mas_nacimientos_que_defunciones
+    - alta_volatilidad_nacimientos
     
     Args:
-        dataset_con_features: Dataset con features temporales
+        dataset_con_features: Dataset con features temporales y variables a codificar
         
     Returns:
-        Tuple con (dataset codificado, mapeos de codificación)
+        Tuple con:
+        - DataFrame codificado con nuevas columnas de codificación
+        - Diccionario de mapeos con los encoders y transformaciones aplicadas
+          (útil para interpretar resultados y aplicar a datos nuevos)
+    
+    Note:
+        Los mapeos retornados se deben guardar para aplicar las mismas
+        transformaciones a datos de producción o test.
+    
+    Example:
+        >>> dataset_cod, mapeos = codificar_variables_categoricas(dataset_features)
+        >>> # Para interpretar un valor codificado:
+        >>> mapeos['decada']['mapeo']  # {1970: 0, 1980: 1, 1990: 2, ...}
     """
     logger.info("Iniciando codificación de variables categóricas...")
     
@@ -663,17 +794,67 @@ def escalar_caracteristicas(
     mapeos_codificacion: Dict[str, Any]
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """
-    Escala las características numéricas usando diferentes métodos de normalización.
+    Escala las características numéricas usando diferentes métodos según el tipo de variable.
     
-    Esta función aplica escalado a las variables numéricas para prepararlas
-    para modelos de machine learning que requieren datos normalizados.
+    Esta función aplica escalado inteligente, seleccionando el método de normalización
+    más apropiado para cada tipo de variable numérica. Esto es crítico porque:
+    
+    Por qué es importante escalar:
+    - Algoritmos basados en distancia (KNN, K-means) son muy sensibles a la escala
+    - Gradiente descendente converge más rápido con features escaladas
+    - Evita que variables con rangos grandes dominen el modelo
+    - Facilita interpretación de coeficientes en modelos lineales
+    - Mejora estabilidad numérica en cálculos matriciales
+    
+    Estrategia de escalado por tipo de variable:
+    
+    1. StandardScaler (para variables con distribución normal):
+       Variables: edad_promedio, edad_mediana, tasas, proporciones, tendencias
+       Razón: Centrado en 0 ayuda a modelos lineales y SVM
+       Fórmula: z = (x - μ) / σ
+    
+    2. MinMaxScaler (para variables de rango específico):
+       Variables: promedios móviles, volatilidad, percentiles
+       Razón: Escala [0,1] ideal para redes neuronales y sigmoide
+       Fórmula: x_scaled = (x - min) / (max - min)
+    
+    3. RobustScaler (para variables con outliers):
+       Variables: totales, cambios año a año, crecimiento
+       Razón: Usa mediana e IQR, resistente a valores extremos
+       Fórmula: x_scaled = (x - median) / IQR
+    
+    Variables NO escaladas (se mantienen originales):
+    - Variables categóricas codificadas (año, década, códigos)
+    - Variables binarias (0/1)
+    - Variables ya normalizadas (percentiles, proporciones)
+    - Columnas one-hot encoded
+    
+    La función crea versiones con sufijos para preservar originales:
+    - columna_standard (escalada con StandardScaler)
+    - columna_minmax (escalada con MinMaxScaler)  
+    - columna_robust (escalada con RobustScaler)
+    - columna_original (valor sin escalar)
     
     Args:
-        dataset_codificado: Dataset con variables codificadas
-        mapeos_codificacion: Diccionario con mapeos de codificación
+        dataset_codificado: Dataset con variables categóricas ya codificadas
+        mapeos_codificacion: Diccionario con mapeos (para identificar columnas one-hot)
         
     Returns:
-        Tuple con (dataset escalado, scalers utilizados)
+        Tuple con:
+        - DataFrame escalado con columnas adicionales (originales + escaladas)
+        - Diccionario de scalers con:
+          * 'standard': {'scaler': StandardScaler, 'variables': [...]}
+          * 'minmax': {'scaler': MinMaxScaler, 'variables': [...]}
+          * 'robust': {'scaler': RobustScaler, 'variables': [...]}
+    
+    Warning:
+        Los scalers retornados se deben guardar (pickle) para aplicar
+        las mismas transformaciones a datos de producción.
+    
+    Example:
+        >>> dataset_esc, scalers = escalar_caracteristicas(dataset_cod, mapeos)
+        >>> # Para datos nuevos en producción:
+        >>> X_new_scaled = scalers['standard']['scaler'].transform(X_new)
     """
     logger.info("Iniciando escalado de características...")
     
@@ -824,16 +1005,77 @@ def preparar_datos_modelado(
     """
     Prepara los datos finales para modelado de machine learning.
     
-    Esta función organiza los datos en formatos apropiados para diferentes
-    tipos de modelos y identifica variables objetivo para regresión y clasificación.
+    Esta función es el paso final del pipeline de preparación de datos. Organiza
+    los datos en formatos listos para entrenar modelos, identificando claramente:
+    
+    1. Variables Objetivo (Targets):
+       a) Para REGRESIÓN (predecir valores continuos):
+          - total_nacimientos_año: Predecir cantidad de nacimientos
+          - total_defunciones_año: Predecir cantidad de defunciones
+          - crecimiento_poblacional: Predecir cambio poblacional
+          - tasa_natalidad: Predecir tasa de nacimientos
+          - edad_promedio_defunciones: Predecir edad promedio
+       
+       b) Para CLASIFICACIÓN (predecir categorías):
+          - crecimiento_positivo: Clasificar si hay crecimiento (binario)
+          - mas_nacimientos_que_defunciones: Clasificar balance demográfico
+          - alta_volatilidad_nacimientos: Detectar períodos volátiles
+          - categoria_crecimiento_codificada: Clasificar tipo de crecimiento
+          - categoria_tasa_natalidad_codificada: Clasificar nivel de natalidad
+    
+    2. Features (Variables Predictoras):
+       - Identifica automáticamente todas las variables que NO son targets
+       - Excluye identificadores y variables auxiliares
+    
+    3. División Temporal (80/20):
+       - Entrenamiento: 80% primeros años
+       - Prueba: 20% últimos años
+       - Respeta el orden temporal (no aleatorio)
+    
+    4. Matrices X e Y:
+       - Crea matrices separadas para cada variable objetivo
+       - Formato listo para sklearn: X_train, X_test, y_train, y_test
+    
+    La función retorna un diccionario completo con:
+    - Datasets de entrenamiento y prueba
+    - Matrices X e Y para cada target
+    - Scalers y mapeos de codificación
+    - Lista de features y targets
     
     Args:
-        dataset_escalado: Dataset con características escaladas
-        scalers: Diccionario con scalers utilizados
-        mapeos_codificacion: Diccionario con mapeos de codificación
+        dataset_escalado: Dataset con todas las características escaladas
+        scalers: Diccionario con scalers de normalización (para aplicar a datos nuevos)
+        mapeos_codificacion: Diccionario con mapeos de variables categóricas
         
     Returns:
-        Diccionario con datos preparados para modelado
+        Diccionario exhaustivo con:
+        - 'features': Lista de nombres de features
+        - 'targets_regresion': Dict de targets para regresión
+        - 'targets_clasificacion': Dict de targets para clasificación
+        - 'dataset_completo': Dataset completo ordenado por año
+        - 'dataset_entrenamiento': Dataset de entrenamiento (80%)
+        - 'dataset_prueba': Dataset de prueba (20%)
+        - 'X_{target_name}': Features para cada target
+        - 'y_{target_name}': Target específico
+        - 'X_train_{target_name}': Features de entrenamiento
+        - 'y_train_{target_name}': Target de entrenamiento
+        - 'X_test_{target_name}': Features de prueba
+        - 'y_test_{target_name}': Target de prueba
+        - 'scalers': Scalers usados
+        - 'mapeos_codificacion': Mapeos de codificación
+    
+    Note:
+        La división temporal (no aleatoria) es crítica para datos de series
+        de tiempo. Esto evita "data leakage" donde el modelo vería el futuro.
+    
+    Example:
+        >>> datos = preparar_datos_modelado(dataset_escalado, scalers, mapeos)
+        >>> # Para entrenar modelo de regresión:
+        >>> X_train = datos['X_train_total_nacimientos_año']
+        >>> y_train = datos['y_train_total_nacimientos_año']
+        >>> # Para entrenar modelo de clasificación:
+        >>> X_train = datos['X_train_crecimiento_positivo']
+        >>> y_train = datos['y_train_crecimiento_positivo']
     """
     logger.info("Iniciando preparación de datos para modelado...")
     
