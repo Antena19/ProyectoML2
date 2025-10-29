@@ -9,11 +9,15 @@ conf/local/**
 # ignore potentially sensitive credentials files
 conf/**/*credentials*
 
-# ignore everything in the following folders
+# Ignorar todos los datos grandes
 data/**
 
-# except their sub-folders
+# Pero permitir las subcarpetas (para mantener estructura)
 !data/**/
+
+# Y permitir los archivos .dvc (metadatos del versionado)
+!*.dvc
+
 
 # also keep all .gitkeep files
 !.gitkeep
