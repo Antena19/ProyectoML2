@@ -1,0 +1,42 @@
+schema: '2.0'
+stages:
+  modelado:
+    cmd: python -m kedro run --pipeline=modelado
+    deps:
+    - path: conf/base/catalog.yml
+      hash: md5
+      md5: 43c2c38700914f95c790c1333d6bbef1
+      size: 6102
+    - path: conf/base/parameters.yml
+      hash: md5
+      md5: 95eaaaec1d1fa73254d6a46c78696ca1
+      size: 6079
+    - path: data/03_primary/dataset_con_features_temporales.csv
+      hash: md5
+      md5: b43cd7242a7909b66d345a2d1b23c46c
+      size: 11586
+    - path: src/proyecto_ml/pipelines/modelado/nodes.py
+      hash: md5
+      md5: e70572d1ad76869291c3d4206ac91ff9
+      size: 14949
+    - path: src/proyecto_ml/pipelines/modelado/pipeline.py
+      hash: md5
+      md5: 0fe2b8fb3450df90a835a1287cb25630
+      size: 3518
+    outs:
+    - path: data/06_models/mejor_modelo.pkl
+      hash: md5
+      md5: bd3180094d9a31bff9d375a76eb84744
+      size: 1786
+    - path: data/07_model_output/comparacion_y_real_vs_pred.csv
+      hash: md5
+      md5: 170a1986967100b8165baf9187b5a709
+      size: 285
+    - path: data/07_model_output/metricas_modelos.csv
+      hash: md5
+      md5: e413910b117c91b875453733dc65e3a3
+      size: 387
+    - path: data/07_model_output/probabilidades.csv
+      hash: md5
+      md5: 900e682102ec17b4e702cf44647cb53c
+      size: 7
