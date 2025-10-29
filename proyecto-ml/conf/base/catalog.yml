@@ -85,27 +85,23 @@ defunciones_limpias:
   filepath: data/02_intermediate/defunciones_limpias.csv
   load_args:
     sep: ','
-    encoding: 'utf-8'
+    encoding: 'latin-1'
   save_args:
     index: false
     sep: ','
-    encoding: 'utf-8'
+    encoding: 'latin-1'
 
 # Datasets con columnas estandarizadas
 # Resultado del nodo de estandarización de columnas
 datasets_estandarizados:
   type: pickle.PickleDataset
   filepath: data/03_primary/datasets_estandarizados.pkl
-  save_args:
-    protocol: 4
 
 # Métricas de calidad de datos
 # Resultado del nodo de validación de calidad
 metricas_calidad_datos:
   type: pickle.PickleDataset
   filepath: data/03_primary/metricas_calidad_datos.pkl
-  save_args:
-    protocol: 4
 
 # Datasets crudos cargados (para referencia interna)
 datasets_crudos_cargados:
@@ -144,16 +140,12 @@ dataset_con_features_temporales:
 datasets_normalizados:
   type: pickle.PickleDataset
   filepath: data/03_primary/datasets_normalizados.pkl
-  save_args:
-    protocol: 4
 
 # Datasets finales optimizados para modelado
 # Resultado del nodo de creación de datasets finales
 datasets_finales_modelado:
   type: pickle.PickleDataset
   filepath: data/03_primary/datasets_finales_modelado.pkl
-  save_args:
-    protocol: 4
 
 # Dataset con variables categóricas codificadas
 # Resultado del nodo de codificación de variables categóricas
@@ -205,40 +197,106 @@ scalers_escalado:
 reporte_calidad_datos:
   type: pickle.PickleDataset
   filepath: data/08_reporting/reporte_calidad_datos.pkl
-  save_args:
-    protocol: 4
 
 # Visualizaciones de calidad de datos
 # Resultado del nodo de generación de visualizaciones de calidad
 visualizaciones_calidad:
   type: pickle.PickleDataset
   filepath: data/08_reporting/visualizaciones_calidad.pkl
-  save_args:
-    protocol: 4
 
 # Reporte de features temporales
 # Resultado del nodo de generación de reporte de features
 reporte_features_temporales:
   type: pickle.PickleDataset
   filepath: data/08_reporting/reporte_features_temporales.pkl
-  save_args:
-    protocol: 4
 
 # Visualizaciones de features temporales
 # Resultado del nodo de generación de visualizaciones de features
 visualizaciones_features:
   type: pickle.PickleDataset
   filepath: data/08_reporting/visualizaciones_features.pkl
-  save_args:
-    protocol: 4
 
 # Reporte final consolidado
 # Resultado del nodo de generación de reporte final
 reporte_final_consolidado:
   type: pickle.PickleDataset
   filepath: data/08_reporting/reporte_final_consolidado.pkl
+
+# =============================================================================
+# DATASETS DE MACHINE LEARNING - PREPARACIÓN
+# =============================================================================
+
+# Dataset individual para CLASIFICACIÓN (100K registros con features de edad)
+# Resultado del nodo preparar_dataset_individual_para_ml
+# Incluye features derivados de edad (útiles para clasificar sexo)
+dataset_individual_ml:
+  type: pandas.CSVDataset
+  filepath: data/04_feature/dataset_individual_ml.csv
+  load_args:
+    encoding: 'latin-1'
   save_args:
-    protocol: 4
+    index: false
+    encoding: 'latin-1'
+
+# Dataset limpio para REGRESIÓN (100K registros SIN features derivados de edad)
+# Resultado del nodo preparar_dataset_para_regresion
+# NO incluye features derivados de edad (evita data leakage)
+dataset_regresion_ml:
+  type: pandas.CSVDataset
+  filepath: data/04_feature/dataset_regresion_ml.csv
+  load_args:
+    encoding: 'latin-1'
+  save_args:
+    index: false
+    encoding: 'latin-1'
+
+# =============================================================================
+# DATASETS DE MACHINE LEARNING - CLASIFICACIÓN
+# =============================================================================
+
+# Datos preparados para clasificación (train/test splits)
+datos_clasificacion:
+  type: kedro.io.MemoryDataset
+
+# Resultados de modelos de clasificación (6 modelos entrenados)
+resultados_clasificacion:
+  type: pickle.PickleDataset
+  filepath: data/07_model_output/resultados_clasificacion.pkl
+
+# Tabla comparativa de modelos de clasificación
+tabla_comparativa_clasificacion:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/tabla_comparativa_clasificacion.csv
+  save_args:
+    index: false
+
+# Rutas donde se guardaron los modelos de clasificación
+rutas_modelos_clasificacion:
+  type: kedro.io.MemoryDataset
+
+# =============================================================================
+# DATASETS DE MACHINE LEARNING - REGRESIÓN
+# =============================================================================
+
+# Datos preparados para regresión (train/test splits)
+datos_regresion:
+  type: kedro.io.MemoryDataset
+
+# Resultados de modelos de regresión (6 modelos entrenados)
+resultados_regresion:
+  type: pickle.PickleDataset
+  filepath: data/07_model_output/resultados_regresion.pkl
+
+# Tabla comparativa de modelos de regresión
+tabla_comparativa_regresion:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/tabla_comparativa_regresion.csv
+  save_args:
+    index: false
+
+# Rutas donde se guardaron los modelos de regresión
+rutas_modelos_regresion:
+  type: kedro.io.MemoryDataset
 
 # =============================================================================
 # NOTAS IMPORTANTES 
@@ -252,3 +310,4 @@ reporte_final_consolidado:
 # 7. INDEX: Si incluir o no el índice de pandas al guardar
 # 8. MEMORY DATASETS: Para datos temporales que no necesitan persistir en disco
 # 9. REPORTES: Los reportes se guardan como pickle para preservar estructura de datos compleja
+# 10. MACHINE LEARNING: Los modelos se guardan en data/06_models/ como archivos .pkl individuales

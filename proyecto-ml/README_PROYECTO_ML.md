@@ -1,3 +1,36 @@
+# 🎯 PROYECTO MACHINE LEARNING - ANÁLISIS DE DEFUNCIONES
+
+## 📋 Información General
+
+**Proyecto**: Evaluación Parcial 2 - Machine Learning Pipelines
+**Asignatura**: Machine Learning
+**Modalidad**: Parejas
+**Duración**: 4 semanas
+**Ponderación**: 40%
+
+---
+
+## 🎯 Objetivo del Proyecto
+
+Este proyecto implementa pipelines de Machine Learning para análisis de datos de defunciones en Chile, utilizando el framework Kedro para la gestión de pipelines de datos.
+
+### **Problema Principal:**
+**Predecir el SEXO de una persona fallecida** basándose únicamente en características de su muerte (edad, fecha, región).
+
+### **Hipótesis Epidemiológica:**
+- **HOMBRES** tienden a morir más jóvenes que mujeres
+- **MUJERES** tienden a morir más mayores que hombres
+- Existen **patrones temporales y regionales** distintos por género
+
+### **Objetivos de Rendimiento:**
+- **Accuracy > 80%**: Predicción correcta en 8 de cada 10 casos
+- **F1-Score > 75%**: Buen balance entre precisión y recall
+- **ROC-AUC > 0.8**: Excelente capacidad discriminativa
+
+---
+
+## 🚀 Instalación y Configuración
+
 # Navegar a la raiz del proyecto
 cd proyecto-ml
 

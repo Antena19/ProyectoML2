@@ -18,6 +18,599 @@ import os
 logger = logging.getLogger(__name__)
 
 
+def preparar_dataset_individual_para_ml(
+    datasets_estandarizados: Dict[str, pd.DataFrame],
+    params: Dict[str, Any]
+) -> pd.DataFrame:
+    """
+    Prepara dataset de defunciones INDIVIDUALES para Machine Learning.
+    
+    A diferencia del flujo principal que agrega datos por año (50 filas),
+    este nodo mantiene los registros INDIVIDUALES (1.2M filas) necesarios
+    para problemas de clasificación como:
+    - Predecir SEXO del fallecido
+    - Predecir REGIÓN geográfica
+    - Predecir EDAD de fallecimiento
+    
+    Args:
+        datasets_estandarizados: Diccionario con datasets del pipeline ingeniería_datos
+        params: Parámetros de configuración
+        
+    Returns:
+        DataFrame con 1.2M registros y features para ML:
+        - sexo: Variable para clasificación
+        - region: Variable para clasificación  
+        - edad_cantidad: Variable para regresión
+        - Features temporales cíclicos (mes_sin, mes_cos, etc.)
+        - Features derivados
+    """
+    logger.info("=" * 80)
+    logger.info("PREPARANDO DATASET INDIVIDUAL PARA MACHINE LEARNING")
+    logger.info("=" * 80)
+    
+    # 1. Extraer dataset de defunciones individuales
+    df = datasets_estandarizados['defunciones_estandarizado'].copy()
+    logger.info(f"Dataset inicial: {df.shape}")
+    logger.info(f"Columnas disponibles: {list(df.columns)}")
+    
+    # 2. Convertir columnas temporales a numérico si es necesario
+    logger.info("\nConvirtiendo columnas temporales a numérico...")
+    columnas_numericas = ['año', 'mes', 'dia_semana', 'trimestre', 'dia_año', 'tipo_edad', 'edad_cantidad']
+    for col in columnas_numericas:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            # Rellenar valores nulos en columnas temporales
+            if df[col].isnull().sum() > 0:
+                # Para columnas temporales, usar el valor más común (moda) o 0
+                if col in ['dia_semana', 'mes', 'trimestre']:
+                    moda = df[col].mode()[0] if len(df[col].mode()) > 0 else 0
+                    df[col] = df[col].fillna(moda)
+                    logger.info(f"  '{col}': {df[col].isnull().sum()} nulos rellenados con moda ({moda})")
+                else:
+                    mediana = df[col].median()
+                    df[col] = df[col].fillna(mediana if pd.notna(mediana) else 0)
+                    logger.info(f"  '{col}': nulos rellenados con mediana")
+    
+    # 3. Crear features temporales CÍCLICOS (para capturar estacionalidad)
+    logger.info("\nCreando features temporales cíclicos...")
+    
+    # Mes (1-12) → seno y coseno
+    df['mes_sin'] = np.sin(2 * np.pi * df['mes'] / 12)
+    df['mes_cos'] = np.cos(2 * np.pi * df['mes'] / 12)
+    
+    # Día del año (1-365) → seno y coseno
+    df['dia_año_sin'] = np.sin(2 * np.pi * df['dia_año'] / 365)
+    df['dia_año_cos'] = np.cos(2 * np.pi * df['dia_año'] / 365)
+    
+    # Trimestre (1-4) → seno y coseno
+    df['trimestre_sin'] = np.sin(2 * np.pi * df['trimestre'] / 4)
+    df['trimestre_cos'] = np.cos(2 * np.pi * df['trimestre'] / 4)
+    
+    # Día de la semana (0-6) → seno y coseno
+    df['dia_semana_sin'] = np.sin(2 * np.pi * df['dia_semana'] / 7)
+    df['dia_semana_cos'] = np.cos(2 * np.pi * df['dia_semana'] / 7)
+    
+    logger.info("✓ Features cíclicos creados")
+    
+    # 4. Crear features derivados MEJORADOS para ML
+    logger.info("\nCreando features derivados MEJORADOS...")
+    
+    # === FEATURES TEMPORALES ===
+    # Indicador de fin de semana
+    df['es_fin_semana'] = df['dia_semana'].isin([5, 6]).astype(int)
+    
+    # Indicador de estación (aproximado para Chile)
+    df['es_invierno'] = df['mes'].isin([6, 7, 8]).astype(int)  # Invierno en Chile
+    df['es_verano'] = df['mes'].isin([12, 1, 2]).astype(int)   # Verano en Chile
+    df['es_primavera'] = df['mes'].isin([9, 10, 11]).astype(int)  # Primavera
+    df['es_otono'] = df['mes'].isin([3, 4, 5]).astype(int)     # Otoño
+    
+    # Trimestre fiscal
+    df['trimestre_fiscal'] = ((df['mes'] - 1) // 3) + 1
+    
+    # Año normalizado (para regresión)
+    df['año_normalizado'] = (df['año'] - df['año'].min()) / (df['año'].max() - df['año'].min())
+    
+    # Década
+    df['decada'] = (df['año'] // 10) * 10
+    
+    # Época del año codificada (0-3 para cada estación)
+    df['epoca_año_codificada'] = pd.cut(df['mes'], bins=[0, 3, 6, 9, 12], 
+                                         labels=[0, 1, 2, 3]).astype(int)
+    
+    # === FEATURES DE EDAD MEJORADOS ===
+    # Rango de edad (más informativo que edad exacta)
+    df['rango_edad'] = pd.cut(df['edad_cantidad'], 
+                              bins=[0, 1, 5, 18, 30, 50, 65, 80, 120], 
+                              labels=['bebe', 'infante', 'adolescente', 'joven', 'adulto', 'maduro', 'adulto_mayor', 'anciano'])
+    
+    # Edad normalizada (0-1)
+    df['edad_normalizada'] = (df['edad_cantidad'] - df['edad_cantidad'].min()) / (df['edad_cantidad'].max() - df['edad_cantidad'].min())
+    
+    # Indicadores de edad específicos
+    df['es_menor_edad'] = (df['edad_cantidad'] < 18).astype(int)
+    df['es_adulto_joven'] = ((df['edad_cantidad'] >= 18) & (df['edad_cantidad'] < 30)).astype(int)
+    df['es_adulto_maduro'] = ((df['edad_cantidad'] >= 30) & (df['edad_cantidad'] < 65)).astype(int)
+    df['es_adulto_mayor'] = (df['edad_cantidad'] >= 65).astype(int)
+    
+    # === FEATURES DE REGIÓN MEJORADOS ===
+    # Agrupar regiones por zona geográfica (más balanceado)
+    regiones_norte = ['De Arica y Parinacota', 'De Tarapacá', 'De Antofagasta', 'De Atacama', 'De Coquimbo']
+    regiones_centro = ['De Valparaíso', 'Metropolitana de Santiago', 'Del Libertador B. O\'Higgins', 'Del Maule', 'De Ñuble']
+    regiones_sur = ['Del Bíobío', 'De La Araucanía', 'De Los Ríos', 'De Los Lagos', 'De Aisén del Gral. C. Ibáñez del Campo', 'De Magallanes y de La Antártica Chilena']
+    
+    df['zona_geografica'] = 'Ignorada'  # Default
+    df.loc[df['region'].isin(regiones_norte), 'zona_geografica'] = 'Norte'
+    df.loc[df['region'].isin(regiones_centro), 'zona_geografica'] = 'Centro'
+    df.loc[df['region'].isin(regiones_sur), 'zona_geografica'] = 'Sur'
+    
+    # Indicadores de zona
+    df['es_norte'] = (df['zona_geografica'] == 'Norte').astype(int)
+    df['es_centro'] = (df['zona_geografica'] == 'Centro').astype(int)
+    df['es_sur'] = (df['zona_geografica'] == 'Sur').astype(int)
+    
+    # === FEATURES COMBINADOS ===
+    # Interacciones edad-temporales
+    df['edad_mes_interaccion'] = df['edad_cantidad'] * df['mes']
+    df['edad_trimestre_interaccion'] = df['edad_cantidad'] * df['trimestre']
+    
+    # Interacciones región-temporales
+    df['region_mes_interaccion'] = df['region'].astype('category').cat.codes * df['mes']
+    
+    # === FEATURES ESPECÍFICOS PARA CLASIFICACIÓN DE SEXO ===
+    # Patrones de mortalidad por edad y género (basado en estadísticas reales)
+    # Hombres tienden a morir más jóvenes, mujeres más mayores
+    
+    # Edad promedio de mortalidad por género (aproximado)
+    df['edad_promedio_hombres'] = 65  # Aproximado
+    df['edad_promedio_mujeres'] = 75  # Aproximado
+    
+    # Desviación respecto a edad promedio de mortalidad
+    df['desviacion_edad_hombres'] = df['edad_cantidad'] - df['edad_promedio_hombres']
+    df['desviacion_edad_mujeres'] = df['edad_cantidad'] - df['edad_promedio_mujeres']
+    
+    # Indicadores de riesgo por edad (basado en patrones epidemiológicos)
+    df['riesgo_mortalidad_joven'] = ((df['edad_cantidad'] >= 15) & (df['edad_cantidad'] <= 35)).astype(int)  # Más hombres
+    df['riesgo_mortalidad_adulto'] = ((df['edad_cantidad'] >= 35) & (df['edad_cantidad'] <= 65)).astype(int)  # Equilibrado
+    df['riesgo_mortalidad_mayor'] = (df['edad_cantidad'] > 65).astype(int)  # Más mujeres
+    
+    # Patrones estacionales por género (hipótesis epidemiológica)
+    df['patron_invierno'] = (df['es_invierno'] * df['edad_cantidad']).astype(int)  # Enfermedades respiratorias
+    df['patron_verano'] = (df['es_verano'] * df['edad_cantidad']).astype(int)  # Accidentes, golpes de calor
+    
+    # Features de interacción edad-región (diferentes patrones por zona)
+    df['edad_norte'] = df['edad_cantidad'] * df['es_norte']
+    df['edad_centro'] = df['edad_cantidad'] * df['es_centro'] 
+    df['edad_sur'] = df['edad_cantidad'] * df['es_sur']
+    
+    # === FEATURES ESTADÍSTICOS ===
+    # Percentiles de edad por región
+    df['edad_percentil_region'] = df.groupby('region')['edad_cantidad'].transform(lambda x: x.rank(pct=True))
+    
+    # Edad promedio por región
+    df['edad_promedio_region'] = df.groupby('region')['edad_cantidad'].transform('mean')
+    
+    # Desviación de edad respecto al promedio regional
+    df['edad_desviacion_region'] = df['edad_cantidad'] - df['edad_promedio_region']
+    
+    logger.info("✓ Features derivados MEJORADOS creados")
+    
+    # 5. Limpiar y preparar columnas finales
+    logger.info("\nSeleccionando columnas finales para ML...")
+    
+    # Columnas finales que necesitamos para ML (MEJORADAS)
+    columnas_finales = [
+        # Variables objetivo para CLASIFICACIÓN
+        'sexo',                    # Clasificar sexo (Hombre/Mujer)
+        'region',                  # Clasificar región geográfica
+        'zona_geografica',         # Clasificar zona geográfica (Norte/Centro/Sur)
+        
+        # Variables objetivo para REGRESIÓN
+        'edad_cantidad',           # Predecir edad de fallecimiento
+        'año_normalizado',         # Predecir año normalizado
+        
+        # CAUSA DE MUERTE (CIE-10) - VARIABLE MÁS IMPORTANTE  
+        'codigo_diagnostico',      # Código capítulo CIE-10 (ej: I00-I99)
+        
+        # Features temporales cíclicos
+        'mes_sin', 'mes_cos',
+        'dia_año_sin', 'dia_año_cos',
+        'trimestre_sin', 'trimestre_cos',
+        'dia_semana_sin', 'dia_semana_cos',
+        
+        # Features temporales mejorados
+        'es_fin_semana',
+        'es_invierno', 'es_verano', 'es_primavera', 'es_otono',
+        'trimestre_fiscal',
+        'epoca_año_codificada',
+        'decada',
+        
+        # Features de edad mejorados
+        'rango_edad',              # Rango de edad categórico
+        'edad_normalizada',        # Edad normalizada (0-1)
+        'es_menor_edad', 'es_adulto_joven', 'es_adulto_maduro', 'es_adulto_mayor',
+        
+        # Features de región mejorados
+        'es_norte', 'es_centro', 'es_sur',
+        
+        # Features combinados
+        'edad_mes_interaccion',
+        'edad_trimestre_interaccion',
+        'region_mes_interaccion',
+        
+        # Features específicos para clasificación de SEXO
+        'desviacion_edad_hombres',
+        'desviacion_edad_mujeres',
+        'riesgo_mortalidad_joven',
+        'riesgo_mortalidad_adulto',
+        'riesgo_mortalidad_mayor',
+        'patron_invierno',
+        'patron_verano',
+        'edad_norte',
+        'edad_centro',
+        'edad_sur',
+        
+        # Features estadísticos
+        'edad_percentil_region',
+        'edad_promedio_region',
+        'edad_desviacion_region',
+        
+        # Features adicionales útiles
+        'tipo_edad',               # Tipo de edad (años, meses, días)
+        'año',                     # Año original (para referencia)
+        'mes',                     # Mes original
+        'trimestre',               # Trimestre original
+    ]
+    
+    # Verificar que todas las columnas existen
+    columnas_disponibles = [col for col in columnas_finales if col in df.columns]
+    columnas_faltantes = set(columnas_finales) - set(columnas_disponibles)
+    
+    if columnas_faltantes:
+        logger.warning(f"Columnas faltantes: {columnas_faltantes}")
+    
+    df_final = df[columnas_disponibles].copy()
+    
+    # 6. Limpieza final
+    logger.info("\nRealizando limpieza final...")
+    
+    # Eliminar filas con valores nulos en variables críticas
+    antes = len(df_final)
+    df_final = df_final.dropna(subset=['sexo', 'region', 'edad_cantidad'])
+    despues = len(df_final)
+    logger.info(f"Filas eliminadas por nulos: {antes - despues}")
+    
+    # Convertir edad_cantidad a numérico si no lo es
+    df_final['edad_cantidad'] = pd.to_numeric(df_final['edad_cantidad'], errors='coerce')
+    
+    # Eliminar filas con edad_cantidad nula después de conversión
+    df_final = df_final.dropna(subset=['edad_cantidad'])
+    
+    # IMPORTANTE: Eliminar sexo "Indeterminado" para clasificación binaria limpia
+    logger.info("\nFiltrando datos para clasificación binaria...")
+    antes_sexo = len(df_final)
+    df_final = df_final[df_final['sexo'].isin(['Hombre', 'Mujer'])]
+    despues_sexo = len(df_final)
+    logger.info(f"Registros con sexo 'Indeterminado' eliminados: {antes_sexo - despues_sexo}")
+    logger.info(f"Dataset después de limpieza: {df_final.shape}")
+    
+    # Tomar muestra estratificada de 100,000 registros
+    # Esto acelera el entrenamiento manteniendo la proporción de clases
+    sample_size = params.get('sample_size_ml', 100000)
+    
+    if len(df_final) > sample_size:
+        logger.info(f"\nCreando muestra estratificada de {sample_size:,} registros...")
+        logger.info("Esto mantiene la proporción de clases y acelera el entrenamiento")
+        
+        # Muestra estratificada por sexo y región
+        from sklearn.model_selection import train_test_split
+        df_final, _ = train_test_split(
+            df_final,
+            train_size=sample_size,
+            stratify=df_final['sexo'],  # Mantener proporción de sexo
+            random_state=42
+        )
+        logger.info(f"Muestra estratificada creada: {df_final.shape}")
+    else:
+        logger.info(f"Dataset ya tiene menos de {sample_size:,} registros, usando todos")
+    
+    # 7. Resumen final
+    logger.info("\n" + "=" * 80)
+    logger.info("DATASET PARA ML PREPARADO")
+    logger.info("=" * 80)
+    logger.info(f"Shape final: {df_final.shape}")
+    logger.info(f"Columnas finales: {len(df_final.columns)}")
+    logger.info(f"\nVariables objetivo:")
+    logger.info(f"  - sexo: {df_final['sexo'].nunique()} categorías")
+    logger.info(f"  - region: {df_final['region'].nunique()} categorías")
+    logger.info(f"  - edad_cantidad: min={df_final['edad_cantidad'].min():.0f}, max={df_final['edad_cantidad'].max():.0f}")
+    logger.info(f"\nDistribución de sexo:")
+    for sexo, count in df_final['sexo'].value_counts().items():
+        logger.info(f"  {sexo}: {count:,}")
+    logger.info(f"\nMemoria usada: {df_final.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+    
+    return df_final
+
+
+def preparar_dataset_para_regresion(
+    datasets_estandarizados: Dict[str, pd.DataFrame],
+    params: Dict[str, Any]
+) -> pd.DataFrame:
+    """
+    Prepara dataset LIMPIO para regresión de edad (SIN data leakage).
+    
+    A diferencia de preparar_dataset_individual_para_ml, este dataset:
+    - NO incluye variables derivadas de edad (rango_edad, edad_normalizada, etc.)
+    - Solo incluye features INDEPENDIENTES de la edad
+    - Diseñado específicamente para predecir edad_cantidad
+    
+    Variables incluidas:
+    - sexo, region, codigo_diagnostico (demográficas y causa de muerte)
+    - Features temporales cíclicos (mes_sin, mes_cos, etc.)
+    - Features estacionales (es_invierno, es_verano, etc.)
+    - Features geográficos (es_norte, es_centro, es_sur)
+    
+    Variables EXCLUIDAS (data leakage):
+    - rango_edad, edad_normalizada
+    - es_menor_edad, es_adulto_joven, es_adulto_maduro, es_adulto_mayor
+    - edad_mes_interaccion, edad_trimestre_interaccion
+    - desviacion_edad_hombres/mujeres
+    - edad_norte/centro/sur, edad_percentil_region, edad_promedio_region
+    - tipo_edad
+    
+    Args:
+        datasets_estandarizados: Diccionario con datasets del pipeline ingeniería_datos
+        params: Parámetros de configuración
+        
+    Returns:
+        DataFrame limpio para regresión de edad (sin data leakage)
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("=" * 80)
+    logger.info("PREPARANDO DATASET LIMPIO PARA REGRESIÓN DE EDAD")
+    logger.info("=" * 80)
+    
+    # 1. Extraer dataset de defunciones individuales
+    df = datasets_estandarizados['defunciones_estandarizado'].copy()
+    logger.info(f"Dataset inicial: {df.shape}")
+    
+    # 2. Convertir columnas temporales a numérico si es necesario
+    logger.info("\nConvirtiendo columnas temporales a numérico...")
+    for col in ['dia_semana', 'trimestre', 'dia_año', 'mes']:
+        if col in df.columns and df[col].dtype == 'object':
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            moda = df[col].mode()[0] if len(df[col].mode()) > 0 else 0
+            nulos = df[col].isnull().sum()
+            df[col] = df[col].fillna(moda)
+            logger.info(f"  '{col}': {nulos} nulos rellenados con moda ({moda})")
+    
+    # 3. Crear features temporales cíclicos
+    logger.info("\nCreando features temporales cíclicos...")
+    import numpy as np
+    
+    df['mes_sin'] = np.sin(2 * np.pi * df['mes'] / 12)
+    df['mes_cos'] = np.cos(2 * np.pi * df['mes'] / 12)
+    df['dia_año_sin'] = np.sin(2 * np.pi * df['dia_año'] / 365)
+    df['dia_año_cos'] = np.cos(2 * np.pi * df['dia_año'] / 365)
+    df['trimestre_sin'] = np.sin(2 * np.pi * df['trimestre'] / 4)
+    df['trimestre_cos'] = np.cos(2 * np.pi * df['trimestre'] / 4)
+    df['dia_semana_sin'] = np.sin(2 * np.pi * df['dia_semana'] / 7)
+    df['dia_semana_cos'] = np.cos(2 * np.pi * df['dia_semana'] / 7)
+    
+    logger.info("✓ Features cíclicos creados")
+    
+    # 4. Crear features estacionales
+    logger.info("\nCreando features estacionales...")
+    
+    df['es_fin_semana'] = (df['dia_semana'] >= 5).astype(int)
+    df['es_invierno'] = df['mes'].isin([6, 7, 8]).astype(int)
+    df['es_verano'] = df['mes'].isin([12, 1, 2]).astype(int)
+    df['es_primavera'] = df['mes'].isin([9, 10, 11]).astype(int)
+    df['es_otono'] = df['mes'].isin([3, 4, 5]).astype(int)
+    df['trimestre_fiscal'] = ((df['mes'] - 1) // 3) + 1
+    df['epoca_año_codificada'] = (df['mes'] - 1) // 3
+    df['decada'] = (df['año'] // 10) * 10
+    
+    logger.info("✓ Features estacionales creados")
+    
+    # 5. Crear features geográficos
+    logger.info("\nCreando features geográficos...")
+    
+    # Zonas geográficas de Chile
+    regiones_norte = ['Arica y Parinacota', 'Tarapacá', 'Antofagasta', 'Atacama', 'Coquimbo']
+    regiones_centro = ['Valparaíso', 'Metropolitana de Santiago', "Libertador General Bernardo O'Higgins", 'Maule', 'Ñuble', 'Biobío']
+    regiones_sur = ['La Araucanía', 'Los Ríos', 'Los Lagos', 'Aysén del General Carlos Ibáñez del Campo', 'De Magallanes y de La Antártica Chilena']
+    
+    df['es_norte'] = df['region'].isin(regiones_norte).astype(int)
+    df['es_centro'] = df['region'].isin(regiones_centro).astype(int)
+    df['es_sur'] = df['region'].isin(regiones_sur).astype(int)
+    
+    logger.info("✓ Features geográficos creados")
+    
+    # 6. Seleccionar SOLO columnas sin data leakage
+    logger.info("\nSeleccionando columnas LIMPIAS (sin data leakage)...")
+    
+    columnas_finales = [
+        # Variable objetivo
+        'edad_cantidad',
+        
+        # Variables demográficas y causa de muerte
+        'sexo',
+        'region',
+        'codigo_diagnostico',  # CIE-10
+        
+        # Features temporales cíclicos
+        'mes_sin', 'mes_cos',
+        'dia_año_sin', 'dia_año_cos',
+        'trimestre_sin', 'trimestre_cos',
+        'dia_semana_sin', 'dia_semana_cos',
+        
+        # Features estacionales
+        'es_fin_semana',
+        'es_invierno', 'es_verano', 'es_primavera', 'es_otono',
+        'trimestre_fiscal',
+        'epoca_año_codificada',
+        'decada',
+        
+        # Features geográficos
+        'es_norte', 'es_centro', 'es_sur',
+    ]
+    
+    # Verificar columnas disponibles
+    columnas_disponibles = [col for col in columnas_finales if col in df.columns]
+    columnas_faltantes = set(columnas_finales) - set(columnas_disponibles)
+    
+    if columnas_faltantes:
+        logger.warning(f"Columnas faltantes: {columnas_faltantes}")
+    
+    df_final = df[columnas_disponibles].copy()
+    logger.info(f"Columnas seleccionadas: {len(columnas_disponibles)}")
+    
+    # =========================================================================
+    # 6.5 APLICAR ONEHOT ENCODING A VARIABLES CATEGÓRICAS
+    # =========================================================================
+    # EXPLICACIÓN:
+    # Convertimos variables categóricas (region, codigo_diagnostico) en columnas
+    # binarias (0/1) para que el modelo NO piense que hay orden entre categorías.
+    #
+    # Ejemplo ANTES:
+    #   region = "Arica"           → LabelEncoding → 0
+    #   region = "Metropolitana"   → LabelEncoding → 13
+    #   Problema: El modelo piensa "Metropolitana es 13 veces más que Arica" ❌
+    #
+    # Ejemplo DESPUÉS (OneHot):
+    #   region = "Arica"           → region_Arica=1, region_RM=0, ...
+    #   region = "Metropolitana"   → region_Arica=0, region_RM=1, ...
+    #   Ventaja: Cada región es independiente, sin orden artificial ✅
+    #
+    # drop_first=True: Elimina la primera columna para evitar multicolinealidad
+    #   Si region_Arica=0 y region_Tarapaca=0 y ... → entonces es la región omitida
+    # =========================================================================
+    
+    logger.info("\n" + "="*70)
+    logger.info("APLICANDO ONEHOT ENCODING A VARIABLES CATEGÓRICAS")
+    logger.info("="*70)
+    
+    columnas_antes = len(df_final.columns)
+    logger.info(f"\nColumnas ANTES de OneHot: {columnas_antes}")
+    
+    # 1. SEXO: Convertir a binario (0=Hombre, 1=Mujer)
+    # NO necesita OneHot porque solo tiene 2 categorías
+    if 'sexo' in df_final.columns:
+        logger.info("\n1. SEXO (convertir a binario 0/1):")
+        logger.info(f"   Valores únicos: {df_final['sexo'].unique()}")
+        sexo_map = {'Hombre': 0, 'Mujer': 1}
+        df_final['sexo'] = df_final['sexo'].map(sexo_map)
+        logger.info("   ✓ Convertido: Hombre=0, Mujer=1")
+        logger.info(f"   Distribución: {df_final['sexo'].value_counts().to_dict()}")
+    
+    # 2. REGION: Aplicar OneHotEncoding
+    # 17 regiones → 16 columnas (drop_first=True)
+    if 'region' in df_final.columns:
+        logger.info("\n2. REGION (OneHotEncoding):")
+        logger.info(f"   Regiones únicas: {df_final['region'].nunique()}")
+        logger.info(f"   Ejemplos: {list(df_final['region'].unique()[:3])}")
+        
+        # pd.get_dummies crea columnas: region_Arica y Parinacota, region_Tarapacá, etc.
+        df_final = pd.get_dummies(df_final, columns=['region'], prefix='region', drop_first=True)
+        
+        region_cols = [col for col in df_final.columns if col.startswith('region_')]
+        logger.info(f"   ✓ Columnas creadas: {len(region_cols)}")
+        logger.info(f"   Ejemplos: {region_cols[:3]}")
+        logger.info("   Interpretación:")
+        logger.info("     - region_Arica y Parinacota=1 significa 'es de Arica'")
+        logger.info("     - Cada región aprende su patrón de mortalidad independiente")
+    
+    # 3. CODIGO_DIAGNOSTICO (CIE-10): Aplicar OneHotEncoding
+    # 20 códigos → 19 columnas (drop_first=True)
+    # ESTE ES EL MÁS IMPORTANTE: cada causa tiene patrón de edad diferente
+    if 'codigo_diagnostico' in df_final.columns:
+        logger.info("\n3. CODIGO_DIAGNOSTICO / CIE-10 (OneHotEncoding):")
+        logger.info(f"   Códigos únicos: {df_final['codigo_diagnostico'].nunique()}")
+        
+        # Mostrar distribución de causas
+        top_codes = df_final['codigo_diagnostico'].value_counts().head(5)
+        logger.info("   Top 5 causas de muerte:")
+        for code, count in top_codes.items():
+            logger.info(f"     * {code}: {count:,} casos ({count/len(df_final)*100:.1f}%)")
+        
+        # Aplicar OneHot
+        df_final = pd.get_dummies(df_final, columns=['codigo_diagnostico'], prefix='cie10', drop_first=True)
+        
+        cie10_cols = [col for col in df_final.columns if col.startswith('cie10_')]
+        logger.info(f"   ✓ Columnas creadas: {len(cie10_cols)}")
+        logger.info(f"   Ejemplos: {cie10_cols[:3]}")
+        logger.info("   Interpretación:")
+        logger.info("     - cie10_I00-I99=1 significa 'causa cardiovascular'")
+        logger.info("     - cie10_S00-T98=1 significa 'accidentes/traumatismos'")
+        logger.info("     - Cada causa aprenderá su patrón de edad específico:")
+        logger.info("       * I00-I99: edad alta (~75 años)")
+        logger.info("       * S00-T98: edad baja (~45 años)")
+    
+    columnas_despues = len(df_final.columns)
+    logger.info("\n" + "="*70)
+    logger.info("RESUMEN ONEHOT ENCODING:")
+    logger.info("="*70)
+    logger.info(f"  Columnas ANTES:  {columnas_antes}")
+    logger.info(f"  Columnas DESPUÉS: {columnas_despues}")
+    logger.info(f"  Nuevas columnas:  {columnas_despues - columnas_antes}")
+    logger.info(f"  Shape final: {df_final.shape}")
+    logger.info("✓ Variables categóricas convertidas a numéricas")
+    logger.info("="*70)
+    
+    # 7. Limpieza final
+    logger.info("\nRealizando limpieza final...")
+    
+    # Eliminar filas con valores nulos en edad_cantidad y sexo
+    # NOTA: codigo_diagnostico ya no existe, se convirtió en cie10_*
+    nulos_antes = df_final.shape[0]
+    df_final = df_final.dropna(subset=['edad_cantidad', 'sexo'])
+    nulos_despues = df_final.shape[0]
+    logger.info(f"Filas eliminadas por nulos: {nulos_antes - nulos_despues}")
+    
+    # Eliminar sexo 'Indeterminado' (si existe)
+    if 'Indeterminado' in df_final['sexo'].unique():
+        indeterminados = (df_final['sexo'] == 'Indeterminado').sum()
+        df_final = df_final[df_final['sexo'] != 'Indeterminado']
+        logger.info(f"Registros con sexo 'Indeterminado' eliminados: {indeterminados}")
+    
+    # 8. Muestra estratificada (100K registros)
+    sample_size = params.get('sample_size_ml', 100000)
+    
+    if len(df_final) > sample_size:
+        logger.info(f"\nCreando muestra estratificada de {sample_size:,} registros...")
+        from sklearn.model_selection import train_test_split
+        df_final, _ = train_test_split(
+            df_final,
+            train_size=sample_size,
+            stratify=df_final['sexo'],
+            random_state=42
+        )
+        logger.info(f"Muestra estratificada creada: {df_final.shape}")
+    
+    # 9. Resumen final
+    logger.info("\n" + "=" * 80)
+    logger.info("DATASET LIMPIO PARA REGRESIÓN PREPARADO")
+    logger.info("=" * 80)
+    logger.info(f"Shape final: {df_final.shape}")
+    logger.info(f"Columnas finales: {len(df_final.columns)}")
+    logger.info(f"\nVariable objetivo:")
+    logger.info(f"  - edad_cantidad: min={df_final['edad_cantidad'].min():.0f}, max={df_final['edad_cantidad'].max():.0f}, mean={df_final['edad_cantidad'].mean():.1f}")
+    logger.info(f"\nDistribución de sexo:")
+    for sexo, count in df_final['sexo'].value_counts().items():
+        logger.info(f"  {sexo}: {count:,}")
+    
+    # Contar columnas OneHot
+    cie10_cols = [col for col in df_final.columns if col.startswith('cie10_')]
+    region_cols = [col for col in df_final.columns if col.startswith('region_')]
+    logger.info(f"\nColumnas OneHot creadas:")
+    logger.info(f"  - CIE-10: {len(cie10_cols)} columnas")
+    logger.info(f"  - Regiones: {len(region_cols)} columnas")
+    logger.info(f"Memoria usada: {df_final.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+    
+    return df_final
+
+
 def integrar_datasets(
     datasets_estandarizados: Dict[str, pd.DataFrame],
     datos_historicos: pd.DataFrame

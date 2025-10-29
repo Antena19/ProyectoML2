@@ -56,9 +56,108 @@ normalizacion:
 # Configuración de datasets finales
 datasets_finales:
   regresion:
+    # SOLO predecir EDAD_CANTIDAD (edad de fallecimiento)
+    # Objetivo: Identificar patrones temporales, geográficos, de género y de causa de muerte
+    # IMPORTANTE: NO incluir variables derivadas de edad (data leakage)
     variables_objetivo:
+      - "edad_cantidad"  # Predecir edad de fallecimiento (0-100+ años)
+    
+    # Variables predictoras LIMPIAS (sin data leakage)
+    # SOLO variables independientes de la edad
+    variables_predictoras:
+      # ⭐ CAUSA DE MUERTE (CIE-10) - VARIABLE MÁS IMPORTANTE
+      - "codigo_diagnostico"  # Capítulo CIE-10 (I00-I99, C00-D48, etc.)
+      
+      # Features demográficos (INDEPENDIENTES de edad)
+      - "sexo"  # Hombre/Mujer
+      - "region"  # Región geográfica (17 regiones)
+      
+      # Features temporales cíclicos (estacionalidad)
+      - "mes_sin"
+      - "mes_cos"
+      - "dia_año_sin"
+      - "dia_año_cos"
+      - "trimestre_sin"
+      - "trimestre_cos"
+      - "dia_semana_sin"
+      - "dia_semana_cos"
+      
+      # Features estacionales (mortalidad diferencial por estación)
+      - "es_fin_semana"
+      - "es_invierno"
+      - "es_verano"
+      - "es_primavera"
+      - "es_otono"
+      
+      # Features temporales adicionales
+      - "trimestre_fiscal"
+      - "epoca_año_codificada"
+      - "decada"
+      
+      # Features geográficos (acceso a salud varía por región)
+      - "es_norte"
+      - "es_centro"
+      - "es_sur"
+  
+  clasificacion:
+    # SOLO clasificación de SEXO (binario: Hombre/Mujer)
+    variables_objetivo:
+      - "sexo"
+    
+    # Variables predictoras optimizadas para clasificación de sexo
+    # Basadas en patrones epidemiológicos de mortalidad diferencial
+    variables_predictoras:
       - "edad_cantidad"
-      - "año_normalizado"
+      - "mes_sin"
+      - "mes_cos"
+      - "dia_año_sin"
+      - "dia_año_cos"
+      - "trimestre_sin"
+      - "trimestre_cos"
+      - "dia_semana_sin"
+      - "dia_semana_cos"
+      - "es_fin_semana"
+      - "es_invierno"
+
+# Configuración de modelado de Machine Learning
+modelado:
+  # Configuración general
+  test_size: 0.2  # 20% para test, 80% para train
+  random_state: 42  # Semilla para reproducibilidad
+  cv_folds: 5  # K=5 para CrossValidation (mínimo requerido por rúbrica)
+  n_jobs: -1  # Usar todos los cores disponibles
+  verbose: 1  # Nivel de verbosidad en GridSearchCV
+  sample_size_ml: 100000  # Muestra estratificada para acelerar entrenamiento (100K registros)
+  
+  # Configuración de clasificación
+  clasificacion:
+    variables_objetivo:
+      - "sexo"  # Clasificación binaria: Hombre/Mujer
+    variables_predictoras:
+      # SOLO VARIABLES RELEVANTES PARA CLASIFICACION DE SEXO (11 variables)
+      
+      # Variables principales de edad
+      - "edad_cantidad"              # Edad de fallecimiento (principal)
+      - "edad_normalizada"           # Edad normalizada 0-1
+      
+      # Variables específicas de sexo (basadas en patrones epidemiológicos)
+      - "desviacion_edad_hombres"    # Desviación respecto a edad promedio de hombres
+      - "desviacion_edad_mujeres"    # Desviación respecto a edad promedio de mujeres
+      - "riesgo_mortalidad_joven"    # Indicador de riesgo joven (más hombres)
+      - "riesgo_mortalidad_adulto"   # Indicador de riesgo adulto
+      - "riesgo_mortalidad_mayor"    # Indicador de riesgo mayor (más mujeres)
+      
+      # Categorías de edad (informativas)
+      - "es_menor_edad"              # Menor de 18 años
+      - "es_adulto_joven"            # 18-30 años
+      - "es_adulto_maduro"           # 30-65 años
+      - "es_adulto_mayor"            # 65+ años
+  
+  # Configuración de regresión
+  regresion:
+    variables_objetivo:
+      - "edad_cantidad"  # Predecir edad de fallecimiento
+      - "año_normalizado"  # Predecir año normalizado
     variables_predictoras:
       - "mes_sin"
       - "mes_cos"
@@ -74,24 +173,24 @@ datasets_finales:
       - "trimestre_fiscal"
       - "epoca_año_codificada"
   
-  clasificacion:
-    variables_objetivo:
-      - "sexo"
-      - "region"
-    variables_predictoras:
-      - "edad_cantidad"
-      - "mes_sin"
-      - "mes_cos"
-      - "dia_año_sin"
-      - "dia_año_cos"
-      - "trimestre_sin"
-      - "trimestre_cos"
-      - "dia_semana_sin"
-      - "dia_semana_cos"
-      - "es_fin_semana"
-      - "es_invierno"
-      - "es_verano"
-      - "trimestre_fiscal"
+  # Rutas de guardado
+  ruta_modelos: "data/06_models"
+  ruta_resultados: "data/07_model_output"
+  
+  # Métricas principales
+  metricas_clasificacion:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1_score"
+    - "roc_auc"
+  
+  metricas_regresion:
+    - "mae"
+    - "mse"
+    - "rmse"
+    - "r2"
+    - "mape"
 
 # Configuración de reportes
 reportes:

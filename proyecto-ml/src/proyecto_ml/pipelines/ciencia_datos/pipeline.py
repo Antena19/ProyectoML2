@@ -9,7 +9,9 @@ from .nodos import (
     integrar_datasets,
     crear_features_temporales_avanzadas,
     normalizar_datos_para_modelado,
-    crear_datasets_finales_para_modelado
+    crear_datasets_finales_para_modelado,
+    preparar_dataset_individual_para_ml,
+    preparar_dataset_para_regresion
 )
 
 
@@ -20,11 +22,19 @@ def create_pipeline(**kwargs) -> Pipeline:
     Este pipeline procesa los datos limpios y los prepara para modelado de
     machine learning, incluyendo integración, feature engineering y escalado.
     
+    Incluye dos flujos:
+    1. Flujo de agregación (para análisis temporal por año)
+    2. Flujo de datos individuales (para clasificación ML con 1.2M registros)
+    
     Returns:
         Pipeline de ciencia de datos configurado
     """
     return Pipeline(
         [
+            # ============================================================
+            # FLUJO 1: DATOS AGREGADOS (Análisis temporal por año)
+            # ============================================================
+            
             # Nodo 1: Integrar datasets de múltiples fuentes
             # Combina datos históricos con información por sexo y crea variables derivadas
             node(
@@ -63,6 +73,32 @@ def create_pipeline(**kwargs) -> Pipeline:
                 outputs="datasets_finales_modelado",
                 name="crear_datasets_finales_para_modelado",
                 tags=["ciencia_datos", "preparacion_modelado"]
+            ),
+            
+            # ============================================================
+            # FLUJO 2: DATOS INDIVIDUALES (Para clasificación ML)
+            # ============================================================
+            
+            # Nodo 5: Preparar dataset individual para CLASIFICACIÓN
+            # Mantiene 1.2M registros individuales con sexo, region, edad
+            # Agrega features temporales cíclicos + features derivados de edad
+            node(
+                func=preparar_dataset_individual_para_ml,
+                inputs=["datasets_estandarizados", "params:modelado"],
+                outputs="dataset_individual_ml",
+                name="preparar_dataset_individual_ml",
+                tags=["ciencia_datos", "ml", "clasificacion"]
+            ),
+            
+            # Nodo 6: Preparar dataset LIMPIO para REGRESIÓN
+            # Dataset SIN features derivados de edad (evita data leakage)
+            # Solo features independientes: sexo, region, codigo_diagnostico, temporales
+            node(
+                func=preparar_dataset_para_regresion,
+                inputs=["datasets_estandarizados", "params:modelado"],
+                outputs="dataset_regresion_ml",
+                name="preparar_dataset_para_regresion",
+                tags=["ciencia_datos", "ml", "regresion"]
             )
         ],
         tags="ciencia_datos"
