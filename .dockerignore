@@ -1,0 +1,115 @@
+# .dockerignore - Archivos y directorios a ignorar al construir la imagen Docker
+
+# Control de versiones
+.git
+.gitignore
+.gitattributes
+
+# Entornos virtuales
+.venv
+venv
+env
+ENV
+env.bak
+venv.bak
+
+# Cache de Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Datos temporales (mantener estructura pero no contenido)
+data/01_raw/*
+!data/01_raw/.gitkeep
+data/02_intermediate/*
+!data/02_intermediate/.gitkeep
+data/03_primary/*
+!data/03_primary/.gitkeep
+data/04_feature/*
+!data/04_feature/.gitkeep
+data/05_model_input/*
+!data/05_model_input/.gitkeep
+data/06_models/*
+!data/06_models/.gitkeep
+data/07_model_output/*
+!data/07_model_output/.gitkeep
+data/08_reporting/*
+!data/08_reporting/.gitkeep
+
+# Archivos de configuración local
+conf/local/
+conf/**/credentials.yml
+
+# Documentación generada
+docs/_build/
+docs/build/
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts de desarrollo
+scripts/dev/
+scripts/local/
+
+# Archivos de backup
+*.bak
+*.backup
