@@ -118,17 +118,20 @@ with DAG(
 
     # ========== NUEVO TASK: graficar_prediccion ==========
     graficar_prediccion = BashOperator(
-        task_id="graficar_prediccion",
-        bash_command="""
-            set -e
-            echo "=== Generando gráfico ==="
-            source /opt/airflow/.venvs/tools/bin/activate
-            cd /opt/airflow/proyecto-ml
+    task_id="graficar_prediccion",
+    bash_command="""
+{% raw %}
+set -e
+echo "=== Generando gráfico ==="
+source /opt/airflow/.venvs/tools/bin/activate
+cd /opt/airflow/proyecto-ml
 
-            python - << 'PYCODE'
+python - << 'PYCODE'
 import os, pickle
 from datetime import datetime
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 REPO_DIR = "/opt/airflow/proyecto-ml"
@@ -137,45 +140,74 @@ MODEL_PKL = os.path.join(REPO_DIR, "models/production/model.pkl")
 OUT_DIR   = os.path.join(REPO_DIR, "models/production")
 os.makedirs(OUT_DIR, exist_ok=True)
 
-# 1. Leer datos
+# 1) Leer dataset completo
 df = pd.read_csv(DATA_CSV, encoding="utf-8")
-df = df.rename(columns={{"año": "anio", "defunciones_totales": "defunciones"}})
-df = df[["anio", "defunciones"]].dropna()
-df["anio"] = df["anio"].astype(int)
-df = df.sort_values("anio")
 
-# 2. Últimos 5 años reales
-ultimos5 = df.tail(5).copy()
+# 2) Preparar datos para el gráfico
+df_plot = df.rename(columns={"año": "anio", "defunciones_totales": "defunciones"})
+if {"anio", "defunciones"}.issubset(df_plot.columns):
+    df_plot["anio"] = df_plot["anio"].astype(int)
+    df_plot = df_plot.sort_values("anio")
+    ultimos5 = df_plot.tail(5).copy()
+else:
+    raise ValueError("No se encontraron las columnas 'año' o 'defunciones_totales' en el dataset.")
 
-# 3. Predicción año actual
-anio_actual = datetime.now().year
+# 3) Cargar modelo y preparar features
 with open(MODEL_PKL, "rb") as f:
     modelo = pickle.load(f)
-X_new = pd.DataFrame({{"anio": [anio_actual]}})
-y_pred = modelo.predict(X_new)
+
+feature_cols = getattr(modelo, "feature_names_in_", None)
+
+if feature_cols is not None:
+    # Asegurar todas las columnas que el modelo espera
+    faltantes = [c for c in feature_cols if c not in df.columns]
+    for c in faltantes:
+        df[c] = 0
+    X_pred_full = df[feature_cols].copy()
+else:
+    excluir = {"defunciones_totales", "defunciones", "anio", "año"}
+    X_cols = [c for c in df.columns if c not in excluir]
+    X_pred_full = df[X_cols].copy()
+
+# Convertir a numérico y manejar NaN
+X_pred_full = X_pred_full.apply(pd.to_numeric, errors="coerce")
+
+# Tomar la última fila COMPLETA si existe; si no, imputar (ffill -> bfill -> 0) y tomar la última
+ultima_completa = X_pred_full.dropna().tail(1)
+if not ultima_completa.empty:
+    X_pred = ultima_completa
+else:
+    X_pred = X_pred_full.fillna(method="ffill").fillna(method="bfill").fillna(0).tail(1)
+
+if X_pred.empty:
+    raise ValueError("⚠️ No hay columnas válidas para predecir (X_pred está vacío).")
+
+# 4) Predicción
+anio_actual = datetime.now().year
+y_pred = modelo.predict(X_pred)
 pred = int(round(float(y_pred[0])))
 
-# 4. Guardar CSV
-pd.DataFrame({{"anio": [anio_actual], "defunciones_predichas": [pred]}}).to_csv(
+# 5) Guardar CSV con la predicción
+pd.DataFrame({"anio": [anio_actual], "defunciones_predichas": [pred]}).to_csv(
     os.path.join(OUT_DIR, "prediccion_actual.csv"), index=False
 )
 
-# 5. Graficar
+# 6) Graficar
 plt.figure()
 plt.plot(ultimos5["anio"], ultimos5["defunciones"], marker="o", label="Reales (últimos 5)")
 plt.plot([anio_actual], [pred], marker="o", linestyle="--", label=f"Predicción {anio_actual}")
 plt.title("Defunciones en Chile: últimos 5 años + predicción actual")
-plt.xlabel("Año")
-plt.ylabel("Defunciones")
-plt.legend()
-plt.grid(True)
+plt.xlabel("Año"); plt.ylabel("Defunciones")
+plt.legend(); plt.grid(True)
 out_png = os.path.join(OUT_DIR, "fig_prediccion.png")
 plt.savefig(out_png, bbox_inches="tight")
 print(f"✅ Gráfico guardado en: {out_png}")
 PYCODE
-        """,
-        env=DEFAULT_ENV,
-    )
+
+{% endraw %}
+    """,
+    env=DEFAULT_ENV,
+)
 
     # ========== TASK 6 ==========
     versionar_y_subir = BashOperator(
