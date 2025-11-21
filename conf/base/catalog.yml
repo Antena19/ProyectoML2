@@ -31,6 +31,13 @@ defunciones_por_edad_fallecido:
   load_args: { sep: ",", encoding: "utf-8" }
   save_args: { index: false, sep: ",", encoding: "utf-8" }
 
+#Paso 2: Registramos dataset
+nacimientos_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/Serie_Nacimientos_2001_2019.csv
+  load_args:
+    encoding: latin-1
+
 # =============================================================================
 # INTERMEDIOS / PRIMARY
 # =============================================================================
