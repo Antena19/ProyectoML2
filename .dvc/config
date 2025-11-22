@@ -1,0 +1,8 @@
+[core]
+    remote = gdrive_remote
+[cache]
+    protected = false
+    type = copy
+['remote "gdrive_remote"']
+    url = gdrive://1AOPebTKdR62kKB1s_II4J2LQ2y-3fa7H
+    gdrive_use_service_account = true

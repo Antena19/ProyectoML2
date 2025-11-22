@@ -1,0 +1,15 @@
+stages:
+  modelado:
+    wdir: .
+    cmd: python -m kedro run --pipeline=modelado
+    deps:
+      - src/proyecto_ml/pipelines/modelado/nodes.py
+      - src/proyecto_ml/pipelines/modelado/pipeline.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/metricas_modelos.csv
+      - data/07_model_output/comparacion_y_real_vs_pred.csv
+      - data/07_model_output/probabilidades.csv
+      - data/06_models/mejor_modelo.pkl
