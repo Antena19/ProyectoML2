@@ -4,11 +4,15 @@ FROM apache/airflow:2.10.3
 USER root
 RUN apt-get update && apt-get install -y git python3-venv && rm -rf /var/lib/apt/lists/*
 
+# Dependencias del proyecto
+COPY requirements_docker.txt /tmp/requirements_docker.txt
+
 # Volver a usuario airflow y crear un venv aislado para tus binarios
 USER airflow
 RUN python -m venv /opt/airflow/.venvs/tools \
- && /opt/airflow/.venvs/tools/bin/pip install --upgrade pip \
- && /opt/airflow/.venvs/tools/bin/pip install "kedro==0.19.8" "dvc[gdrive]==3.33.2"
+ && /opt/airflow/.venvs/tools/bin/pip install --upgrade pip setuptools wheel \
+ && /opt/airflow/.venvs/tools/bin/pip install "numpy>=2.0.0" "pandas>=2.2.0" "scikit-learn>=1.4.0" "scipy>=1.11.0" "matplotlib>=3.8.0" "PyYAML>=6.0" \
+ && /opt/airflow/.venvs/tools/bin/pip install "kedro==1.0.0" "kedro-datasets[pandas]>=1.7.0" "dvc[gdrive]==3.41.0"
 
 
 

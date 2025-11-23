@@ -11,7 +11,7 @@
 # Dataset principal con datos históricos de nacimientos y defunciones por año
 # Contiene información desde 1974 hasta 2023
 datos_historicos_nacimientos_defunciones:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/01_raw/setdedatos.csv
   load_args:
     sep: ','
@@ -24,7 +24,7 @@ datos_historicos_nacimientos_defunciones:
 # Dataset con datos filtrados de defunciones (2014-2023)
 # Contiene información detallada de cada defunción con ubicación y causa
 datos_filtrados_defunciones:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/01_raw/datos_filtrados_2014_2023.csv
   load_args:
     sep: ','
@@ -40,7 +40,7 @@ datos_filtrados_defunciones:
 
 # Dataset de nacimientos y defunciones desglosado por sexo
 nacimientos_defunciones_por_sexo:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/01_raw/dataset_nacimiento-defuncion_por_sexo.csv
   load_args:
     sep: ','
@@ -52,7 +52,7 @@ nacimientos_defunciones_por_sexo:
 
 # Dataset de nacimientos por rango de edad de la madre
 nacimientos_por_edad_madre:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/01_raw/nacimiento_rango_edad_madre.csv
   load_args:
     sep: ','
@@ -64,7 +64,7 @@ nacimientos_por_edad_madre:
 
 # Dataset de defunciones por rango de edad del fallecido
 defunciones_por_edad_fallecido:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/01_raw/rango_edad_fallecido.csv
   load_args:
     sep: ','
@@ -94,7 +94,7 @@ defunciones_limpias:
 # Datasets con columnas estandarizadas
 # Resultado del nodo de estandarización de columnas
 datasets_estandarizados:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/03_primary/datasets_estandarizados.pkl
   save_args:
     protocol: 4
@@ -102,7 +102,7 @@ datasets_estandarizados:
 # Métricas de calidad de datos
 # Resultado del nodo de validación de calidad
 metricas_calidad_datos:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/03_primary/metricas_calidad_datos.pkl
   save_args:
     protocol: 4
@@ -118,7 +118,7 @@ datasets_crudos_cargados:
 # Dataset unificado con todos los datos integrados
 # Resultado del nodo de integración de datasets
 dataset_unificado:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/03_primary/dataset_unificado.csv
   load_args:
     sep: ','
@@ -131,7 +131,7 @@ dataset_unificado:
 # Dataset con features temporales agregadas
 # Resultado del nodo de creación de features temporales
 dataset_con_features_temporales:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/03_primary/dataset_con_features_temporales.csv
   load_args:
     sep: ','
@@ -142,7 +142,7 @@ dataset_con_features_temporales:
 # Datasets normalizados con diferentes métodos
 # Resultado del nodo de normalización
 datasets_normalizados:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/03_primary/datasets_normalizados.pkl
   save_args:
     protocol: 4
@@ -150,7 +150,7 @@ datasets_normalizados:
 # Datasets finales optimizados para modelado
 # Resultado del nodo de creación de datasets finales
 datasets_finales_modelado:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/03_primary/datasets_finales_modelado.pkl
   save_args:
     protocol: 4
@@ -158,7 +158,7 @@ datasets_finales_modelado:
 # Dataset con variables categóricas codificadas
 # Resultado del nodo de codificación de variables categóricas
 dataset_codificado:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/03_primary/dataset_codificado.csv
   load_args:
     sep: ','
@@ -171,7 +171,7 @@ dataset_codificado:
 # Dataset con características escaladas
 # Resultado del nodo de escalado de características
 dataset_escalado:
-  type: pandas.CSVDataset
+  type: pandas.CSVDataSet
   filepath: data/03_primary/dataset_escalado.csv
   load_args:
     sep: ','
@@ -203,7 +203,7 @@ scalers_escalado:
 # Reporte de calidad de datos
 # Resultado del nodo de generación de reporte de calidad
 reporte_calidad_datos:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/08_reporting/reporte_calidad_datos.pkl
   save_args:
     protocol: 4
@@ -211,7 +211,7 @@ reporte_calidad_datos:
 # Visualizaciones de calidad de datos
 # Resultado del nodo de generación de visualizaciones de calidad
 visualizaciones_calidad:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/08_reporting/visualizaciones_calidad.pkl
   save_args:
     protocol: 4
@@ -219,7 +219,7 @@ visualizaciones_calidad:
 # Reporte de features temporales
 # Resultado del nodo de generación de reporte de features
 reporte_features_temporales:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/08_reporting/reporte_features_temporales.pkl
   save_args:
     protocol: 4
@@ -227,7 +227,7 @@ reporte_features_temporales:
 # Visualizaciones de features temporales
 # Resultado del nodo de generación de visualizaciones de features
 visualizaciones_features:
-  type: pickle.PickleDataset
+  type: pickle.PickleDataSet
   filepath: data/08_reporting/visualizaciones_features.pkl
   save_args:
     protocol: 4

@@ -5,16 +5,16 @@ stages:
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 43c2c38700914f95c790c1333d6bbef1
-      size: 6102
+      md5: 84ba79ca50ce2302bbafe7807556e0f2
+      size: 6271
     - path: conf/base/parameters.yml
       hash: md5
       md5: 95eaaaec1d1fa73254d6a46c78696ca1
       size: 6079
     - path: data/03_primary/dataset_con_features_temporales.csv
       hash: md5
-      md5: b43cd7242a7909b66d345a2d1b23c46c
-      size: 11586
+      md5: 77f087dc7eb441cff3ce67869b537c96
+      size: 11535
     - path: src/proyecto_ml/pipelines/modelado/nodes.py
       hash: md5
       md5: e70572d1ad76869291c3d4206ac91ff9
@@ -26,17 +26,17 @@ stages:
     outs:
     - path: data/06_models/mejor_modelo.pkl
       hash: md5
-      md5: bd3180094d9a31bff9d375a76eb84744
-      size: 1786
+      md5: d36f747785e2844bdc9edeab200cbe94
+      size: 1787
     - path: data/07_model_output/comparacion_y_real_vs_pred.csv
       hash: md5
-      md5: 170a1986967100b8165baf9187b5a709
-      size: 285
+      md5: 9d11c4084e7ff86714f9f8e47683aca0
+      size: 274
     - path: data/07_model_output/metricas_modelos.csv
       hash: md5
-      md5: e413910b117c91b875453733dc65e3a3
-      size: 387
+      md5: f330a0f678429507392064e6241ab476
+      size: 381
     - path: data/07_model_output/probabilidades.csv
       hash: md5
-      md5: 900e682102ec17b4e702cf44647cb53c
-      size: 7
+      md5: 797354a58eedfdea5b77b8c12d976256
+      size: 6

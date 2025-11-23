@@ -4,5 +4,8 @@
     protected = false
     type = copy
 ['remote "gdrive_remote"']
-    url = gdrive://1AOPebTKdR62kKB1s_II4J2LQ2y-3fa7H
-    gdrive_use_service_account = true
+    url = gdrive://1AbR7jiwvlExp0gx0VboFhNpK8p9PIF7Q
+    gdrive_use_service_account = false
+    gdrive_service_account_json_file_path = /opt/airflow/proyecto-ml/secrets/proyecto-ml-479118-c0e8199326a2.json
+    gdrive_service_account_user_email = proyecto-ml@proyecto-ml-479118.iam.gserviceaccount.com
+    gdrive_user_credentials_file = /opt/airflow/proyecto-ml/secrets/gdrive-user-creds.json

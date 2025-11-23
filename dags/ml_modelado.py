@@ -76,7 +76,7 @@ with DAG(
             echo "=== Ejecutando pipeline Kedro ==="
             {VENV_ACTIVATE}
             cd "{REPO_DIR}"
-            kedro run --pipeline=modelado
+            kedro run --only-missing-outputs
             echo "✅ Pipeline ejecutado correctamente"
         """,
         env=DEFAULT_ENV,
