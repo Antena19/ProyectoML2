@@ -77,3 +77,59 @@ pytest -v
 
 # Ejecutar con cobertura
 pytest --cov=src/proyecto_ml
+
+## Airflow - Guía rápida (Windows)
+
+### 1) Pre-requisitos
+
+- Docker Desktop instalado y ejecutándose
+- Webhook de Slack (opcional) para notificaciones
+
+### 2) Variables y secretos
+
+```powershell
+setx SLACK_WEBHOOK_URL "https://hooks.slack.com/services/XXXXXXXX/XXXXXXXX/XXXXXXXXXXXXXXXX"
+setx AIRFLOW_BASE_URL "http://localhost:8080"
+```
+
+Ubica los secretos de DVC en `c:\ProyectoML2\secrets`:
+
+- `proyecto-ml-479118-c0e8199326a2.json`
+- `gdrive-user-creds.json`
+- `client_secret_*.json` (opcional)
+
+### 3) Levantar Airflow
+
+```powershell
+docker compose -f docker\docker-compose.yml up -d
+```
+
+UI: `http://localhost:8080` (usuario `admin`, contraseña `admin`).
+
+### 4) Despausar y ejecutar el DAG principal
+
+Desde la UI: DAGs → `ml_modelado_kedro_dvc` → Unpause → Trigger.
+
+Vía CLI:
+
+```powershell
+docker compose -f docker\docker-compose.yml exec airflow bash -lc "airflow dags list"
+docker compose -f docker\docker-compose.yml exec airflow bash -lc "airflow dags unpause ml_modelado_kedro_dvc"
+docker compose -f docker\docker-compose.yml exec airflow bash -lc "airflow dags trigger ml_modelado_kedro_dvc"
+```
+
+### 5) Artefactos y versionado
+
+- Supervisado:
+  - `models/production/model.pkl`, `fig_prediccion.png`, `prediccion_actual.csv`
+- No supervisado:
+  - `data/07_model_output/clustering/*`, `data/07_model_output/reduction/*`
+
+Los artefactos se versionan automáticamente con DVC y se suben al remoto configurado.
+
+### 6) Notificaciones Slack
+
+Si `SLACK_WEBHOOK_URL` está definido:
+
+- Éxito: resumen con rutas y métricas
+- Falla: aviso con enlace a la UI si configuraste `AIRFLOW_BASE_URL`

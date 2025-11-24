@@ -116,6 +116,83 @@ with DAG(
         env=DEFAULT_ENV,
     )
 
+    unsup_kmeans = BashOperator(
+        task_id="unsup_kmeans",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step kmeans
+        """,
+        env=DEFAULT_ENV,
+    )
+
+    unsup_dbscan = BashOperator(
+        task_id="unsup_dbscan",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step dbscan
+        """,
+        env=DEFAULT_ENV,
+    )
+
+    unsup_hier = BashOperator(
+        task_id="unsup_hier",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step hier
+        """,
+        env=DEFAULT_ENV,
+    )
+
+    unsup_gmm = BashOperator(
+        task_id="unsup_gmm",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step gmm
+        """,
+        env=DEFAULT_ENV,
+    )
+
+    red_pca = BashOperator(
+        task_id="red_pca",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step pca
+        """,
+        env=DEFAULT_ENV,
+    )
+
+    red_tsne = BashOperator(
+        task_id="red_tsne",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step tsne
+        """,
+        env=DEFAULT_ENV,
+    )
+
+    red_umap = BashOperator(
+        task_id="red_umap",
+        bash_command=f"""
+            set -e
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            python scripts/run_unsupervised.py --step umap
+        """,
+        env=DEFAULT_ENV,
+    )
+
     # ========== NUEVO TASK: graficar_prediccion ==========
     graficar_prediccion = BashOperator(
     task_id="graficar_prediccion",
@@ -227,6 +304,44 @@ PYCODE
         env=DEFAULT_ENV,
     )
 
+    versionar_no_supervisado = BashOperator(
+        task_id="versionar_no_supervisado",
+        bash_command=f"""
+            set -e
+            echo "=== Versionando artefactos no supervisados ==="
+            {VENV_ACTIVATE}
+            cd "{REPO_DIR}"
+            git config --global --add safe.directory "{REPO_DIR}"
+            if [ -d "data/07_model_output/clustering" ]; then
+                dvc add data/07_model_output/clustering || true
+            else
+                echo "⚠️ No se encontró directorio de clustering"
+            fi
+            if [ -d "data/07_model_output/reduction" ]; then
+                dvc add data/07_model_output/reduction || true
+            else
+                echo "⚠️ No se encontró directorio de reducción"
+            fi
+            if [ -d "data/08_reporting" ]; then
+                dvc add data/08_reporting || true
+            else
+                echo "⚠️ No se encontró directorio de reportes"
+            fi
+            if [ -f "data/07_model_output/metricas_modelos.csv" ]; then dvc add data/07_model_output/metricas_modelos.csv || true; fi
+            if [ -f "data/07_model_output/metricas_resumen.csv" ]; then dvc add data/07_model_output/metricas_resumen.csv || true; fi
+            if [ -f "data/07_model_output/comparacion_y_real_vs_pred.csv" ]; then dvc add data/07_model_output/comparacion_y_real_vs_pred.csv || true; fi
+            if [ -f "data/07_model_output/probabilidades_raw.csv" ]; then dvc add data/07_model_output/probabilidades_raw.csv || true; fi
+            if [ -f "data/07_model_output/probabilidades.csv" ]; then dvc add data/07_model_output/probabilidades.csv || true; fi
+            if [ -f "data/07_model_output/importancias_features.csv" ]; then dvc add data/07_model_output/importancias_features.csv || true; fi
+            git add data/07_model_output/*.dvc || true
+            git commit -m "Versiona artefactos no supervisados (clustering y reducción)" || true
+            git push origin main || true
+            dvc push || true
+            echo "✅ Versionado no supervisado completo"
+        """,
+        env=DEFAULT_ENV,
+    )
+
     # ========== TASK 7 ==========
     notificar_exito = BashOperator(
         task_id="notificar_exito",
@@ -240,6 +355,72 @@ PYCODE
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
+    notificar_slack_exito = BashOperator(
+        task_id="notificar_slack_exito",
+        bash_command="""
+            set -e
+            if [ -z "$SLACK_WEBHOOK_URL" ]; then echo "SLACK_WEBHOOK_URL no configurado"; exit 0; fi
+            python - << 'PYCODE'
+import json, os, urllib.request, csv
+url = os.environ.get('SLACK_WEBHOOK_URL', '')
+if not url:
+    raise SystemExit(0)
+repo = os.environ.get('REPO_DIR', '')
+airflow_url = os.environ.get('AIRFLOW_BASE_URL', '')
+modelo_path = f"{repo}/models/production/model.pkl"
+grafico_path = f"{repo}/models/production/fig_prediccion.png"
+csv_pred_path = f"{repo}/models/production/prediccion_actual.csv"
+met_res_path = os.path.join(repo, "data/07_model_output/metricas_resumen.csv")
+met_mod_path = os.path.join(repo, "data/07_model_output/metricas_modelos.csv")
+clust_dir = os.path.join(repo, "data/07_model_output/clustering")
+red_dir = os.path.join(repo, "data/07_model_output/reduction")
+def count_files(d):
+    try:
+        return len([f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f))])
+    except Exception:
+        return 0
+clust_count = count_files(clust_dir)
+red_count = count_files(red_dir)
+def read_head(path, n=3):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = []
+            for i, row in enumerate(reader):
+                rows.append(", ".join(row))
+                if i+1 >= n:
+                    break
+            return "\n".join(rows)
+    except Exception:
+        return ""
+met_res_head = read_head(met_res_path, 3)
+met_mod_head = read_head(met_mod_path, 3)
+blocks = [
+    {"type": "section", "text": {"type": "mrkdwn", "text": "✅ Pipeline completado exitosamente"}},
+    {"type": "section", "fields": [
+        {"type": "mrkdwn", "text": f"*Modelo:* \n{modelo_path}"},
+        {"type": "mrkdwn", "text": f"*Gráfico:* \n{grafico_path}"},
+        {"type": "mrkdwn", "text": f"*CSV:* \n{csv_pred_path}"},
+        {"type": "mrkdwn", "text": f"*Clustering archivos:* \n{clust_count}"},
+        {"type": "mrkdwn", "text": f"*Reducción archivos:* \n{red_count}"}
+    ]}
+]
+if met_res_head:
+    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"*Métricas resumen (top):*\n```{met_res_head}```"}})
+if met_mod_head:
+    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"*Métricas modelos (top):*\n```{met_mod_head}```"}})
+if airflow_url:
+    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"*Airflow:* {airflow_url}"}})
+payload = {"text": "Pipeline ML completado", "blocks": blocks}
+req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+with urllib.request.urlopen(req) as resp:
+    resp.read()
+PYCODE
+        """,
+        env={**DEFAULT_ENV, "REPO_DIR": REPO_DIR},
+        trigger_rule=TriggerRule.ALL_SUCCESS,
+    )
+
     # ========== TASK 8 ==========
     notificar_fallo = BashOperator(
         task_id="notificar_fallo",
@@ -250,7 +431,36 @@ PYCODE
         trigger_rule=TriggerRule.ONE_FAILED,
     )
 
+    notificar_slack_fallo = BashOperator(
+        task_id="notificar_slack_fallo",
+        bash_command="""
+            set -e
+            if [ -z "$SLACK_WEBHOOK_URL" ]; then echo "SLACK_WEBHOOK_URL no configurado"; exit 0; fi
+            python - << 'PYCODE'
+import json, os, urllib.request
+url = os.environ.get('SLACK_WEBHOOK_URL', '')
+if not url:
+    raise SystemExit(0)
+airflow_url = os.environ.get('AIRFLOW_BASE_URL', '')
+text = "❌ Pipeline falló. Revisa logs."
+if airflow_url:
+    text += f"\nAirflow: {airflow_url}"
+payload = {"text": "Pipeline ML falló", "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": text}}]}
+req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+with urllib.request.urlopen(req) as resp:
+    resp.read()
+PYCODE
+        """,
+        env=DEFAULT_ENV,
+        trigger_rule=TriggerRule.ONE_FAILED,
+    )
+
     # ========== DEPENDENCIAS ==========
-    validar_entorno >> actualizar_repo >> ejecutar_kedro >> validar_modelo >> promover_modelo >> graficar_prediccion >> versionar_y_subir >> notificar_exito
-    [versionar_y_subir, ejecutar_kedro, validar_modelo, promover_modelo, graficar_prediccion] >> notificar_fallo
+    validar_entorno >> actualizar_repo >> ejecutar_kedro >> validar_modelo >> promover_modelo >> graficar_prediccion >> versionar_y_subir >> notificar_exito >> notificar_slack_exito
+    ejecutar_kedro >> [unsup_kmeans, unsup_dbscan, unsup_hier, unsup_gmm]
+    for r in [red_pca, red_tsne, red_umap]:
+        [unsup_kmeans, unsup_dbscan, unsup_hier, unsup_gmm] >> r
+    [red_pca, red_tsne, red_umap] >> versionar_no_supervisado >> notificar_exito
+    [versionar_y_subir, versionar_no_supervisado, ejecutar_kedro, validar_modelo, promover_modelo, graficar_prediccion, unsup_kmeans, unsup_dbscan, unsup_hier, unsup_gmm, red_pca, red_tsne, red_umap] >> notificar_fallo
+    [versionar_y_subir, versionar_no_supervisado, ejecutar_kedro, validar_modelo, promover_modelo, graficar_prediccion, unsup_kmeans, unsup_dbscan, unsup_hier, unsup_gmm, red_pca, red_tsne, red_umap] >> notificar_slack_fallo
 

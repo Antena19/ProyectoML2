@@ -190,3 +190,38 @@ modelado:
   criterio: null # RMSE (regresión) / f1_macro (clasificación)
   drop_cols: ["año"] # ej. ["region", "glosa_causa"]
   one_hot_max_uniques: 40 # máximo de categorías para one-hot
+
+# =============================================================================
+# PARÁMETROS NO SUPERVISADO
+# =============================================================================
+no_supervisado:
+  kmeans:
+    n_clusters_grid: [3, 4, 5, 6, 7, 8, 9, 10]
+    random_state: 42
+    max_iter: 300
+  dbscan:
+    eps: 0.5
+    min_samples: 5
+    metric: "euclidean"
+  hierarchical:
+    linkage: "ward"
+    affinity: "euclidean"
+    n_clusters: 5
+  gmm:
+    n_components_grid: [3, 4, 5, 6, 7]
+    covariance_type: "full"
+    random_state: 42
+  pca:
+    n_components: 2
+    whiten: false
+  tsne:
+    n_components: 2
+    perplexity: 30
+    n_iter: 1000
+    learning_rate: 200
+  umap:
+    n_components: 2
+    n_neighbors: 15
+    min_dist: 0.1
+  svd:
+    n_components: 2
