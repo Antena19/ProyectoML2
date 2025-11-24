@@ -427,7 +427,6 @@ def consolidar_resultados(
 
             # Copiar metricas_modelos si existe
             try:
-                import pandas as pd
                 mm_path = os.path.join(base_dir, "metricas_modelos.csv")
                 if os.path.exists(mm_path):
                     df_mm = pd.read_csv(mm_path)
