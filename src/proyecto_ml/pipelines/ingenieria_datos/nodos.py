@@ -541,3 +541,17 @@ def validar_calidad_datos(
     
     logger.info("Validación de calidad completada")
     return metricas_calidad
+"""
+Nodos de Ingeniería de Datos.
+
+Objetivo:
+- Cargar datos crudos, limpiar el dataset crítico de defunciones, estandarizar
+  nombres y validar calidad (completitud, duplicados, rangos y consistencia).
+
+Qué generan:
+- `data/02_intermediate/defunciones_limpias.csv`.
+- `data/03_primary/datasets_estandarizados.pkl` y `metricas_calidad_datos.pkl`.
+
+Dónde observar:
+- Notebooks de exploración y reportes en `data/08_reporting/`.
+"""

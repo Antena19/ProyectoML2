@@ -13,3 +13,163 @@ stages:
       - data/07_model_output/comparacion_y_real_vs_pred.csv
       - data/07_model_output/probabilidades.csv
       - data/06_models/mejor_modelo.pkl
+    metrics:
+      - data/07_model_output/metricas_modelos.csv
+
+  clustering_kmeans:
+    cmd: python scripts/run_unsupervised.py --step kmeans
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/clustering/kmeans_labels.csv
+    metrics:
+      - data/07_model_output/clustering/metrics_kmeans.csv
+      - data/07_model_output/clustering/elbow_kmeans.csv
+
+  clustering_dbscan:
+    cmd: python scripts/run_unsupervised.py --step dbscan
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/clustering/dbscan_labels.csv
+    metrics:
+      - data/07_model_output/clustering/metrics_dbscan.csv
+
+  clustering_hier:
+    cmd: python scripts/run_unsupervised.py --step hier
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/clustering/hier_labels.csv
+      - data/07_model_output/clustering/dendrogram_hier.pkl
+    metrics:
+      - data/07_model_output/clustering/metrics_hier.csv
+
+  clustering_gmm:
+    cmd: python scripts/run_unsupervised.py --step gmm
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/clustering/gmm_labels.csv
+    metrics:
+      - data/07_model_output/clustering/metrics_gmm.csv
+
+  reduction_pca:
+    cmd: python scripts/run_unsupervised.py --step pca
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/reduction/embeddings_pca.csv
+      - data/07_model_output/reduction/pca_loadings.csv
+    metrics:
+      - data/07_model_output/reduction/pca_varianza_explicada.csv
+
+  reduction_tsne:
+    cmd: python scripts/run_unsupervised.py --step tsne
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/reduction/embeddings_tsne.csv
+
+  reduction_tsne3d:
+    cmd: python scripts/run_unsupervised.py --step tsne3d
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/reduction/embeddings_tsne3d.csv
+
+  reduction_umap:
+    cmd: python scripts/run_unsupervised.py --step umap
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/reduction/embeddings_umap.csv
+
+  reduction_svd:
+    cmd: python scripts/run_unsupervised.py --step svd
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/reduction/embeddings_svd.csv
+    metrics:
+      - data/07_model_output/reduction/svd_varianza_explicada.csv
+
+  anomaly_isoforest:
+    cmd: python scripts/run_unsupervised.py --step isoforest
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/anomaly/isoforest_scores.csv
+      - data/07_model_output/anomaly/isoforest_labels.csv
+
+  anomaly_lof:
+    cmd: python scripts/run_unsupervised.py --step lof
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/anomaly/lof_scores.csv
+      - data/07_model_output/anomaly/lof_labels.csv
+
+  anomaly_oneclass:
+    cmd: python scripts/run_unsupervised.py --step oneclass
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/anomaly/oneclass_scores.csv
+      - data/07_model_output/anomaly/oneclass_labels.csv
+
+  association_apriori:
+    cmd: python scripts/run_unsupervised.py --step apriori
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/association/apriori_rules.csv
+
+  association_fpgrowth:
+    cmd: python scripts/run_unsupervised.py --step fpgrowth
+    deps:
+      - scripts/run_unsupervised.py
+      - conf/base/parameters.yml
+      - conf/base/catalog.yml
+      - data/03_primary/dataset_con_features_temporales.csv
+    outs:
+      - data/07_model_output/association/fpgrowth_rules.csv

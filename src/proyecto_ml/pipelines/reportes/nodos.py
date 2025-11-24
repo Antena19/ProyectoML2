@@ -396,3 +396,17 @@ def generar_reporte_final(
     
     logger.info("Reporte final consolidado generado exitosamente")
     return reporte_final
+"""
+Nodos de Reportes y Visualizaciones.
+
+Objetivo:
+- Construir resúmenes y gráficos de calidad y de features para comunicar
+  hallazgos y validar la preparación de datos.
+
+Salidas:
+- Archivos en `data/08_reporting/` y visualizaciones auxiliares en
+  `data/08_reporting/*.pkl` y PNGs generados por funciones.
+
+Dónde observar:
+- Notebook de presentación y el notebook de reportes (`notebooks/reportes/`).
+"""

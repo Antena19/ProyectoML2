@@ -1221,3 +1221,19 @@ def preparar_datos_modelado(
     
     logger.info("Preparación de datos para modelado completada exitosamente")
     return datos_modelado
+"""
+Nodos de Ciencia de Datos.
+
+Objetivo:
+- Integrar datasets (históricos + por sexo), crear features temporales y
+  preparar datos normalizados/codificados para modelado ML.
+
+Qué generan:
+- `data/03_primary/dataset_unificado.csv`: integración base.
+- `data/03_primary/dataset_con_features_temporales.csv`: features avanzadas.
+- `data/03_primary/datasets_normalizados.pkl`: versiones normalizadas.
+- `data/03_primary/datasets_finales_modelado.pkl`: datasets finales.
+
+Dónde observar:
+- Notebook de presentación y notebooks de exploración; reportes en `data/08_reporting/`.
+"""

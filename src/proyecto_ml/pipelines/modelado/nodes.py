@@ -49,6 +49,40 @@ def preparar_model_input(
 
     df = df_features.copy()
 
+    # Integrar etiquetas de clustering como features categóricas (opcional)
+    try:
+        add_clusters = params.get("use_cluster_features", True)
+        if add_clusters:
+            import os
+            def _read_csv_robusto(p):
+                import pandas as pd
+                for enc in ("utf-8", "latin-1", "cp1252"):
+                    try:
+                        return pd.read_csv(p, encoding=enc)
+                    except UnicodeDecodeError:
+                        pass
+                return pd.read_csv(p, encoding="latin-1")
+
+            base_paths = {
+                "kmeans": "data/07_model_output/clustering/kmeans_labels.csv",
+                "hier":   "data/07_model_output/clustering/hier_labels.csv",
+                "gmm":    "data/07_model_output/clustering/gmm_labels.csv",
+                "dbscan": "data/07_model_output/clustering/dbscan_labels.csv",
+            }
+            for name, path in base_paths.items():
+                if os.path.exists(path):
+                    lab = _read_csv_robusto(path)
+                    if "cluster" in lab.columns:
+                        serie = lab["cluster"].astype(str)
+                        if len(serie) == len(df):
+                            df[f"cluster_{name}"] = serie.values
+                        else:
+                            # Alinear por posición hasta el mínimo común
+                            n = min(len(serie), len(df))
+                            df[f"cluster_{name}"] = pd.Series(serie.iloc[:n].tolist() + [None] * (len(df) - n))
+    except Exception:
+        pass
+
     # 1) Validación de target
     if target_col not in df.columns:
         primeras = ", ".join(df.columns[:25])
@@ -364,6 +398,7 @@ def consolidar_resultados(
     y_test: pd.Series,
     y_pred: pd.Series,
     y_proba: pd.DataFrame | None = None,
+    params: dict | None = None,
 ) -> dict[str, pd.DataFrame]:
     comparacion = pd.DataFrame({"y_real": y_test, "y_pred": y_pred}).reset_index(drop=True)
     out = {"metricas": metricas.reset_index(), "comparacion": comparacion}
@@ -374,5 +409,55 @@ def consolidar_resultados(
         # opcional: guarde CSV vacío con encabezado estándar
         out["probabilidades"] = pd.DataFrame(columns=["proba"])
 
+    # Copia opcional a carpeta de comparación según 'run_tag'
+    try:
+        run_tag = None
+        if params and isinstance(params, dict):
+            run_tag = params.get("run_tag")
+        if run_tag:
+            import os
+            base_dir = "data/07_model_output"
+            cmp_dir = os.path.join(base_dir, "compare", str(run_tag))
+            os.makedirs(cmp_dir, exist_ok=True)
+
+            # Guardar copias en CSV
+            out["metricas"].to_csv(os.path.join(cmp_dir, "metricas_resumen.csv"), index=False)
+            out["comparacion"].to_csv(os.path.join(cmp_dir, "comparacion_y_real_vs_pred.csv"), index=False)
+            out["probabilidades"].to_csv(os.path.join(cmp_dir, "probabilidades.csv"), index=False)
+
+            # Copiar metricas_modelos si existe
+            try:
+                mm_path = os.path.join(base_dir, "metricas_modelos.csv")
+                if os.path.exists(mm_path):
+                    df_mm = pd.read_csv(mm_path)
+                    df_mm.to_csv(os.path.join(cmp_dir, "metricas_modelos.csv"), index=False)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     return out
+
+"""
+Nodos del pipeline de Modelado Supervisado.
+
+Propósito:
+- Preparar datos para entrenamiento, entrenar un conjunto breve de modelos,
+  evaluar sus métricas, seleccionar el mejor y producir predicciones y
+  probabilidades, junto a importancias de variables.
+
+Selección del mejor:
+- Por defecto usa `RMSE` si el problema es de regresión y `f1_macro` si es
+  clasificación. Con los datos actuales de defunciones (regresión), el mejor
+  suele ser `linreg` (Regresión Lineal).
+
+Salidas y dónde verlas:
+- `data/06_models/mejor_modelo.pkl`: modelo ganador (promovido por Airflow a
+  `models/production/model.pkl`).
+- `data/07_model_output/metricas_modelos.csv` y `metricas_resumen.csv`:
+  rendimiento por modelo y resumen.
+- `data/07_model_output/comparacion_y_real_vs_pred.csv`: reales vs predichos.
+- `data/07_model_output/importancias_features.csv`: importancias/coeficientes si aplica.
+- En producción: `models/production/fig_prediccion.png` y `prediccion_actual.csv`.
+"""
 

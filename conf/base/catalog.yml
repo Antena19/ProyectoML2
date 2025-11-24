@@ -188,3 +188,142 @@ reporte_final_consolidado:
   type: pickle.PickleDataSet
   filepath: data/08_reporting/reporte_final_consolidado.pkl
   save_args: { protocol: 4 }
+
+# =============================================================================
+# NO SUPERVISADO: CLUSTERING Y REDUCCIÓN
+# =============================================================================
+clust_kmeans_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/kmeans_labels.csv
+  save_args: { index: false }
+
+clust_dbscan_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/dbscan_labels.csv
+  save_args: { index: false }
+
+clust_hier_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/hier_labels.csv
+  save_args: { index: false }
+
+clust_gmm_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/gmm_labels.csv
+  save_args: { index: false }
+
+metrics_kmeans:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/metrics_kmeans.csv
+  save_args: { index: false }
+
+metrics_dbscan:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/metrics_dbscan.csv
+  save_args: { index: false }
+
+metrics_hier:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/metrics_hier.csv
+  save_args: { index: false }
+
+metrics_gmm:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/metrics_gmm.csv
+  save_args: { index: false }
+
+elbow_kmeans:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/clustering/elbow_kmeans.csv
+  save_args: { index: false }
+
+dendrogram_hier:
+  type: kedro_datasets.pickle.PickleDataset
+  filepath: data/07_model_output/clustering/dendrogram_hier.pkl
+  save_args: { protocol: 4 }
+
+embeddings_pca:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/embeddings_pca.csv
+  save_args: { index: false }
+
+pca_varianza_explicada:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/pca_varianza_explicada.csv
+  save_args: { index: false }
+
+pca_loadings:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/pca_loadings.csv
+  save_args: { index: false }
+
+embeddings_tsne:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/embeddings_tsne.csv
+  save_args: { index: false }
+
+embeddings_umap:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/embeddings_umap.csv
+  save_args: { index: false }
+
+embeddings_tsne3d:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/embeddings_tsne3d.csv
+  save_args: { index: false }
+
+  embeddings_svd:
+    type: kedro_datasets.pandas.CSVDataset
+    filepath: data/07_model_output/reduction/embeddings_svd.csv
+    save_args: { index: false }
+
+  svd_varianza_explicada:
+    type: kedro_datasets.pandas.CSVDataset
+    filepath: data/07_model_output/reduction/svd_varianza_explicada.csv
+    save_args: { index: false }
+
+# =============================================================================
+# NO SUPERVISADO: ANOMALY DETECTION
+# =============================================================================
+anomaly_isoforest_scores:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/isoforest_scores.csv
+  save_args: { index: false }
+
+anomaly_isoforest_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/isoforest_labels.csv
+  save_args: { index: false }
+
+anomaly_lof_scores:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/lof_scores.csv
+  save_args: { index: false }
+
+anomaly_lof_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/lof_labels.csv
+  save_args: { index: false }
+
+anomaly_oneclass_scores:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/oneclass_scores.csv
+  save_args: { index: false }
+
+anomaly_oneclass_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/oneclass_labels.csv
+  save_args: { index: false }
+
+# =============================================================================
+# NO SUPERVISADO: ASSOCIATION RULES
+# =============================================================================
+assoc_apriori:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/association/apriori_rules.csv
+  save_args: { index: false }
+
+assoc_fpgrowth:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/association/fpgrowth_rules.csv
+  save_args: { index: false }

@@ -249,6 +249,71 @@ scripts\run.bat tests
 kedro viz
 ```
 
+### Ejecución con Airflow
+
+#### Levantar el stack de Airflow
+
+```powershell
+docker compose -f docker\docker-compose.yml up -d
+```
+
+- UI: `http://localhost:8080` (usuario: `admin`, contraseña: `admin`).
+- Código y datos montados en el contenedor en `/_opt/airflow/proyecto-ml_`.
+
+#### Configurar variables para notificaciones
+
+```powershell
+setx SLACK_WEBHOOK_URL "https://hooks.slack.com/services/XXXXXXXX/XXXXXXXX/XXXXXXXXXXXXXXXX"
+setx AIRFLOW_BASE_URL "http://localhost:8080"
+```
+
+Reinicia Airflow para aplicar cambios:
+
+```powershell
+docker compose -f docker\docker-compose.yml up -d
+```
+
+#### Secretos de DVC (GDrive)
+
+Coloca en `c:\ProyectoML2\secrets`:
+
+- `proyecto-ml-479118-c0e8199326a2.json`
+- `gdrive-user-creds.json`
+- `client_secret_*.json` (opcional)
+
+Estos se montan en el contenedor en `/opt/airflow/proyecto-ml/secrets`.
+
+#### Despausar y ejecutar el DAG principal
+
+Desde la UI de Airflow: DAGs → busca `ml_modelado_kedro_dvc` → Unpause → Trigger.
+
+O vía CLI:
+
+```powershell
+docker compose -f docker\docker-compose.yml exec airflow bash -lc "airflow dags list"
+docker compose -f docker\docker-compose.yml exec airflow bash -lc "airflow dags unpause ml_modelado_kedro_dvc"
+docker compose -f docker\docker-compose.yml exec airflow bash -lc "airflow dags trigger ml_modelado_kedro_dvc"
+```
+
+#### Artefactos generados
+
+- Supervisado:
+  - `models/production/model.pkl`
+  - `models/production/fig_prediccion.png`
+  - `models/production/prediccion_actual.csv`
+- No supervisado:
+  - `data/07_model_output/clustering/*.csv|*.pkl`
+  - `data/07_model_output/reduction/*.csv`
+
+Todos versionados automáticamente con DVC.
+
+#### Notificaciones Slack
+
+Si `SLACK_WEBHOOK_URL` está configurado, se enviarán mensajes en:
+
+- Éxito: `notificar_slack_exito`
+- Falla: `notificar_slack_fallo`
+
 ### Trabajar con Notebooks
 
 ```bash
