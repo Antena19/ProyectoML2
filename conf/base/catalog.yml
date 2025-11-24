@@ -272,12 +272,58 @@ embeddings_tsne3d:
   filepath: data/07_model_output/reduction/embeddings_tsne3d.csv
   save_args: { index: false }
 
-embeddings_svd:
+  embeddings_svd:
+    type: kedro_datasets.pandas.CSVDataset
+    filepath: data/07_model_output/reduction/embeddings_svd.csv
+    save_args: { index: false }
+
+  svd_varianza_explicada:
+    type: kedro_datasets.pandas.CSVDataset
+    filepath: data/07_model_output/reduction/svd_varianza_explicada.csv
+    save_args: { index: false }
+
+# =============================================================================
+# NO SUPERVISADO: ANOMALY DETECTION
+# =============================================================================
+anomaly_isoforest_scores:
   type: kedro_datasets.pandas.CSVDataset
-  filepath: data/07_model_output/reduction/embeddings_svd.csv
+  filepath: data/07_model_output/anomaly/isoforest_scores.csv
   save_args: { index: false }
 
-svd_varianza_explicada:
+anomaly_isoforest_labels:
   type: kedro_datasets.pandas.CSVDataset
-  filepath: data/07_model_output/reduction/svd_varianza_explicada.csv
+  filepath: data/07_model_output/anomaly/isoforest_labels.csv
+  save_args: { index: false }
+
+anomaly_lof_scores:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/lof_scores.csv
+  save_args: { index: false }
+
+anomaly_lof_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/lof_labels.csv
+  save_args: { index: false }
+
+anomaly_oneclass_scores:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/oneclass_scores.csv
+  save_args: { index: false }
+
+anomaly_oneclass_labels:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/anomaly/oneclass_labels.csv
+  save_args: { index: false }
+
+# =============================================================================
+# NO SUPERVISADO: ASSOCIATION RULES
+# =============================================================================
+assoc_apriori:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/association/apriori_rules.csv
+  save_args: { index: false }
+
+assoc_fpgrowth:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/association/fpgrowth_rules.csv
   save_args: { index: false }

@@ -13,3 +13,12 @@ def create_pipeline(**kwargs):
             )
         ]
     )
+"""
+Pipeline simple de Clasificación (carga de dataset de nacimientos).
+
+Objetivo:
+- Demostrar carga y paso de datos crudos para futuros nodos de clasificación.
+
+Salida:
+- `datos_cargados` (en memoria) para nodos posteriores.
+"""

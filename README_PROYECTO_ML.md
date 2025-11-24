@@ -1,3 +1,59 @@
+# Proyecto ML — Predicción y Análisis Exploratorio de Defunciones
+
+## Resumen Ejecutivo
+- Objetivo: entender y predecir defunciones anuales en Chile y descubrir patrones.
+- Enfoque: pipelines de ingeniería, ciencia de datos y modelado (Kedro), orquestados por Airflow, versionados con DVC.
+- Resultados:
+  - Supervisado (regresión): Regresión Lineal promovida a producción (`models/production/model.pkl`) con métricas en `data/07_model_output/`.
+  - No supervisado: clustering (K-Means, Jerárquico, GMM, DBSCAN), reducción (PCA, t-SNE, UMAP, SVD), anomalías (IsolationForest/LOF/One-Class), reglas de asociación (Apriori/FP-Growth).
+  - Notebooks con narrativa y visualizaciones interactivas (`Presentacion_Pauta_Visual.ipynb`, `06_final_analysis.ipynb`).
+
+## Arquitectura y Pipelines
+- Ingeniería de Datos: limpieza y estandarización.
+- Ciencia de Datos: integración, features temporales, escalado y codificación.
+- Modelado: entrenamiento, evaluación, selección y promoción a producción.
+- No supervisado: clustering, reducción dimensional, anomalías, asociación.
+- Reportes: visualizaciones y resúmenes.
+
+## Ejecución de Pipelines
+- Orden recomendado:
+  - `kedro run --pipeline=ingenieria_datos`
+  - `kedro run --pipeline=ciencia_datos`
+  - `kedro run --pipeline=reportes`
+  - `kedro run --pipeline=modelado`
+- No supervisado con script:
+  - `python scripts/run_unsupervised.py --step kmeans|dbscan|hier|gmm|pca|tsne|umap|tsne3d|svd|isoforest|lof|oneclass|apriori|fpgrowth|all`
+
+## Artefactos y Resultados
+- Supervisado:
+  - Métricas y comparaciones: `data/07_model_output/metricas_modelos.csv`, `metricas_resumen.csv`, `comparacion_y_real_vs_pred.csv`.
+  - Producción: `models/production/model.pkl`, `fig_prediccion.png`, `prediccion_actual.csv`.
+- No supervisado:
+  - Clustering: `data/07_model_output/clustering/*` (labels, métricas, elbow, dendrograma).
+  - Reducción: `data/07_model_output/reduction/*` (embeddings, varianza, loadings).
+  - Anomalías: `data/07_model_output/anomaly/*` (scores y labels).
+  - Asociación: `data/07_model_output/association/*` (rules con support/confidence/lift).
+
+## DVC — Versionado 100%
+- Etapas declaradas en `dvc.yaml` para todos los pipelines (supervisado y no supervisado).
+- `metrics:` marcado en etapas clave (`metricas_modelos.csv`, `elbow_kmeans.csv`, `pca_varianza_explicada.csv`, `svd_varianza_explicada.csv`).
+- Directorios versionados: `data/03_primary.dvc`, `models/production.dvc`.
+- Remoto configurado en `.dvc/config`.
+
+## Airflow — Orquestación
+- Levantar: `docker compose -f docker\docker-compose.yml up -d`
+- UI: `http://localhost:8080` (admin/admin).
+- Ejecutar DAG principal: `ml_modelado_kedro_dvc` (UI o CLI).
+- Artefactos versionados y notificaciones opcionales (Slack).
+
+## Notebooks — Narrativa Profesional
+- `notebooks/Presentacion_Pauta_Visual.ipynb`: historia del proyecto, visualizaciones clave (PCA, biplot, t-SNE/UMAP, clustering), explicaciones simples.
+- `notebooks/06_final_analysis.ipynb`: resultados finales, comparativas baseline vs con clusters, análisis de patrones por cluster, anomalías y asociación.
+- Interactividad: usa `plotly` si está disponible; fallback a `matplotlib`.
+
+## Docstrings — Cobertura
+- Módulos con docstrings: pipelines y nodos de modelado, clustering, reducción, anomalías, asociación, ciencia de datos, ingeniería de datos, reportes y clasificación.
+
 # Navegar a la raiz del proyecto
 cd proyecto-ml
 

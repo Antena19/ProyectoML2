@@ -7,7 +7,7 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--step", choices=["prep", "kmeans", "dbscan", "hier", "gmm", "pca", "tsne", "umap", "tsne3d", "svd", "all"], default="all")
+    parser.add_argument("--step", choices=["prep", "kmeans", "dbscan", "hier", "gmm", "pca", "tsne", "umap", "tsne3d", "svd", "isoforest", "lof", "oneclass", "apriori", "fpgrowth", "all"], default="all")
     args = parser.parse_args()
 
     project_path = Path(__file__).resolve().parents[1]
@@ -41,6 +41,19 @@ def main():
             run_tsne3d,
             run_truncated_svd,
         )
+        from proyecto_ml.pipelines.unsupervised_learning.anomaly_detection.nodes import (
+            run_isolation_forest,
+            run_lof,
+            run_oneclass,
+        )
+        try:
+            from proyecto_ml.pipelines.unsupervised_learning.association_rules.nodes import (
+                run_apriori,
+                run_fpgrowth,
+            )
+        except Exception:
+            run_apriori = None
+            run_fpgrowth = None
 
         X = catalog.load("dataset_con_features_temporales")
 
@@ -80,6 +93,24 @@ def main():
             emb, var = run_truncated_svd(X, params)
             catalog.save("embeddings_svd", emb)
             catalog.save("svd_varianza_explicada", var)
+        elif args.step == "isoforest":
+            scores, labels = run_isolation_forest(X, params)
+            catalog.save("anomaly_isoforest_scores", scores)
+            catalog.save("anomaly_isoforest_labels", labels)
+        elif args.step == "lof":
+            scores, labels = run_lof(X, params)
+            catalog.save("anomaly_lof_scores", scores)
+            catalog.save("anomaly_lof_labels", labels)
+        elif args.step == "oneclass":
+            scores, labels = run_oneclass(X, params)
+            catalog.save("anomaly_oneclass_scores", scores)
+            catalog.save("anomaly_oneclass_labels", labels)
+        elif args.step == "apriori" and run_apriori is not None:
+            rules = run_apriori(X, params)
+            catalog.save("assoc_apriori", rules)
+        elif args.step == "fpgrowth" and run_fpgrowth is not None:
+            rules = run_fpgrowth(X, params)
+            catalog.save("assoc_fpgrowth", rules)
         elif args.step == "all":
             emb_pca, var_pca, loadings_pca = run_pca(X, params)
             catalog.save("embeddings_pca", emb_pca)
@@ -98,6 +129,18 @@ def main():
             emb_svd, var_svd = run_truncated_svd(X, params)
             catalog.save("embeddings_svd", emb_svd)
             catalog.save("svd_varianza_explicada", var_svd)
+
+            scores_iso, labels_iso = run_isolation_forest(X, params)
+            catalog.save("anomaly_isoforest_scores", scores_iso)
+            catalog.save("anomaly_isoforest_labels", labels_iso)
+
+            scores_lof, labels_lof = run_lof(X, params)
+            catalog.save("anomaly_lof_scores", scores_lof)
+            catalog.save("anomaly_lof_labels", labels_lof)
+
+            scores_one, labels_one = run_oneclass(X, params)
+            catalog.save("anomaly_oneclass_scores", scores_one)
+            catalog.save("anomaly_oneclass_labels", labels_one)
 
 
 if __name__ == "__main__":

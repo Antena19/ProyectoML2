@@ -102,6 +102,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 y_test="y_test",
                 y_pred="predicciones",
                 y_proba="probabilidades",
+                params="params:modelado",
             ),
             outputs=dict(
                 metricas="metricas",
@@ -111,3 +112,33 @@ def create_pipeline(**kwargs) -> Pipeline:
             name="consolidar_resultados",
         ),
     ])
+"""
+Pipeline de Modelado Supervisado.
+
+Objetivo:
+- Entrenar varios modelos, evaluarlos, elegir el mejor y dejar predicciones,
+  métricas e importancias listas para análisis y despliegue.
+
+Qué hace cada paso:
+- preparar_model_input: limpia/codifica y deja X+y listos.
+- split_train_test_temporal: separa por tiempo para evitar fuga.
+- entrenar_modelos: entrena un set pequeño y robusto de modelos.
+- evaluar_modelos: calcula métricas por modelo (regresión o clasificación).
+- seleccionar_mejor_modelo: elige según criterio (por defecto: RMSE en regresión,
+  f1_macro en clasificación) y guarda en `data/06_models/mejor_modelo.pkl`.
+- importancia_features: extrae importancias o coeficientes si aplica.
+- predecir_con_mejor_modelo: genera predicciones y probabilidades.
+- consolidar_resultados: guarda tablas finales en `data/07_model_output/`.
+
+Modelo usado y ganador:
+- Con los datos actuales (regresión de defunciones), el criterio es RMSE y el
+  ganador suele ser `linreg` (Regresión Lineal) por su R2≈1 y RMSE muy bajo.
+  Este modelo se promueve a producción por Airflow.
+
+Dónde ver resultados:
+- Métricas y comparaciones: `data/07_model_output/metricas_resumen.csv`,
+  `metricas_modelos.csv`, `comparacion_y_real_vs_pred.csv`.
+- Modelo en producción y gráfico: `models/production/model.pkl`,
+  `fig_prediccion.png`, `prediccion_actual.csv`.
+- Notebook de presentación: `notebooks/Presentacion_Pauta_Visual.ipynb`.
+"""

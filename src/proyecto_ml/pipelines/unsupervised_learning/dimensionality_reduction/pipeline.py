@@ -13,3 +13,19 @@ def create_pipeline() -> Pipeline:
         ],
         tags=["no_supervisado", "dimensionality_reduction"],
     )
+"""
+Pipeline de Reducción de Dimensionalidad (no supervisado).
+
+Objetivo:
+- Generar embeddings y tablas para interpretar la estructura de los datos:
+  PCA (embeddings, varianza y loadings), t-SNE 2D/3D, UMAP y SVD truncado.
+
+Salidas principales (catálogo):
+- `data/07_model_output/reduction/embeddings_pca.csv`, `pca_varianza_explicada.csv`,
+  `pca_loadings.csv`.
+- `embeddings_tsne.csv`, `embeddings_tsne3d.csv`, `embeddings_umap.csv`.
+- `embeddings_svd.csv`, `svd_varianza_explicada.csv`.
+
+Dónde verlos:
+- Notebook: `notebooks/Presentacion_Pauta_Visual.ipynb` (PCA, t-SNE, UMAP, SVD).
+"""

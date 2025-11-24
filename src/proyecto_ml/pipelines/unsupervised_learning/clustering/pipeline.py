@@ -12,3 +12,20 @@ def create_pipeline() -> Pipeline:
         ],
         tags=["no_supervisado", "clustering"],
     )
+"""
+Pipeline de Clustering (no supervisado).
+
+Objetivo:
+- Probar K-Means, DBSCAN, Jerárquico y GMM, medir su calidad y guardar
+  etiquetas y métricas para análisis.
+
+Salidas principales (catálogo):
+- Etiquetas: `data/07_model_output/clustering/*_labels.csv`.
+- Métricas: `data/07_model_output/clustering/metrics_*.csv`.
+- Elbow (K-Means): `data/07_model_output/clustering/elbow_kmeans.csv`.
+- Dendrograma (Jerárquico): `data/07_model_output/clustering/dendrogram_hier.pkl`.
+
+Cómo interpretarlo:
+- Silhouette alto y Davies-Bouldin bajo indican separación clara.
+- Elbow sugiere K óptimo; el dendrograma ayuda a elegir cortes.
+"""

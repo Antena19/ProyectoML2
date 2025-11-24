@@ -88,3 +88,15 @@ def run_truncated_svd(dataset_con_features_temporales: pd.DataFrame, params: Dic
     df_emb = pd.DataFrame(emb, columns=[f"svd{i+1}" for i in range(emb.shape[1])])
     var_ratio = pd.DataFrame({"component": [f"svd{i+1}" for i in range(model.explained_variance_ratio_.shape[0])], "explained_variance_ratio": model.explained_variance_ratio_})
     return df_emb, var_ratio
+"""
+Nodos de reducción de dimensionalidad:
+- PCA: embeddings, varianza explicada y loadings para interpretar variables.
+- t-SNE (2D/3D): estructura local y microgrupos.
+- UMAP (2D): relaciones locales y globales.
+- SVD truncado: baseline lineal para alta dimensionalidad.
+
+Salidas (catálogo `data/07_model_output/reduction/`):
+- `embeddings_pca.csv`, `pca_varianza_explicada.csv`, `pca_loadings.csv`.
+- `embeddings_tsne.csv`, `embeddings_tsne3d.csv`, `embeddings_umap.csv`.
+- `embeddings_svd.csv`, `svd_varianza_explicada.csv`.
+"""
