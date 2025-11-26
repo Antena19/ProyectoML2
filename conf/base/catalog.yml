@@ -41,7 +41,7 @@ nacimientos_raw:
 # INTERMEDIOS / PRIMARY
 # =============================================================================
 defunciones_limpias:
-  type: pandas.CSVDataSet
+  type: kedro_datasets.pandas.CSVDataset
   filepath: data/02_intermediate/defunciones_limpias.csv
   load_args: { sep: ",", encoding: "utf-8" }
   save_args: { index: false, sep: ",", encoding: "utf-8" }
@@ -180,12 +180,12 @@ reporte_features_temporales:
   save_args: { protocol: 4 }
 
 visualizaciones_features:
-  type: pickle.PickleDataSet
+  type: kedro_datasets.pickle.PickleDataset
   filepath: data/08_reporting/visualizaciones_features.pkl
   save_args: { protocol: 4 }
 
 reporte_final_consolidado:
-  type: pickle.PickleDataSet
+  type: kedro_datasets.pickle.PickleDataset
   filepath: data/08_reporting/reporte_final_consolidado.pkl
   save_args: { protocol: 4 }
 
@@ -272,15 +272,15 @@ embeddings_tsne3d:
   filepath: data/07_model_output/reduction/embeddings_tsne3d.csv
   save_args: { index: false }
 
-  embeddings_svd:
-    type: kedro_datasets.pandas.CSVDataset
-    filepath: data/07_model_output/reduction/embeddings_svd.csv
-    save_args: { index: false }
+embeddings_svd:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/embeddings_svd.csv
+  save_args: { index: false }
 
-  svd_varianza_explicada:
-    type: kedro_datasets.pandas.CSVDataset
-    filepath: data/07_model_output/reduction/svd_varianza_explicada.csv
-    save_args: { index: false }
+svd_varianza_explicada:
+  type: kedro_datasets.pandas.CSVDataset
+  filepath: data/07_model_output/reduction/svd_varianza_explicada.csv
+  save_args: { index: false }
 
 # =============================================================================
 # NO SUPERVISADO: ANOMALY DETECTION
